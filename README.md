@@ -36,9 +36,28 @@ Le fichier CSV contient **689 434 lignes** et **56 variables**.
 
 | # | Question | Variables utilisées | Visualisation | Objectif |
 | - | -------- | -------------------- | ------------- | -------- |
-| 1 |          |                      |               |          |
+| 1 | Comment le nombre total d’accidents évolue-t-il entre 2020 et 2024 ? | an, Num_Acc | courbe (line chart) | Identifier l’évolution globale du nombre d’accidents |
+| 2 | Y a-t-il des tendances saisonnières (plus d’accidents en hiver/été) ? | mois, an, Num_Acc | courbe + heatmap | Mettre en évidence des variations saisonnières |
+| 3 | Où se produisent le plus d’accidents (région, département, ville) ? | dep, com, lat, long, Num_Acc | carte (choroplèthe / points) | Identifier les zones géographiques à risque |
+| 4 | Quelle est la répartition des victimes par âge et par sexe ? | an_nais, sexe | histogrammes | Analyser les profils démographiques des victimes |
+| 5 | À quelles heures de la journée les accidents sont-ils les plus fréquents ? | hrmn, Num_Acc | histogramme / courbe | Identifier les heures les plus accidentogènes |
+| 6 | Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ? | atm, Num_Acc, grav | diagramme en barres | Mesurer l’influence des conditions atmosphériques |
+| 7 | Existe-t-il un seuil (âge, vitesse estimée, heure…) à partir duquel le risque explose ? | an_nais, hrmn, vma, grav | scatter plot + courbe de tendance | Détecter des effets de seuil sur la gravité |
+| 8 | Les motos ont-elles un taux de gravité plus élevé ? | catv, grav | barres comparatives | Comparer la gravité selon le type de véhicule |
+| 9 | Les accidents sont-ils plus graves la nuit que le jour ? | lum, grav | barres empilées | Évaluer l’impact de la luminosité |
+| 10 | Les accidents en agglomération sont-ils différents de ceux hors agglomération ? | agg, grav, Num_Acc | barres comparatives | Comparer les contextes urbain vs rural |
+| 11 | Le type de route influence-t-il la gravité des accidents ? | catr, grav | diagramme en barres | Identifier les routes les plus dangereuses |
+| 12 | L’état de la chaussée influence-t-il les accidents ? | surf, grav, Num_Acc | barres empilées | Comprendre l’impact des conditions de route |
+| 13 | Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ? | nbv, grav, Num_Acc | boxplot / barres | Étudier l’effet de l’infrastructure |
+| 14 | Les équipements de sécurité (ceinture, casque) réduisent-ils la gravité ? | secu1, secu2, secu3, grav | barres comparatives | Évaluer l’efficacité des dispositifs de sécurité |
+| 15 | Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ? | manv, col, grav | diagramme en barres | Identifier les situations les plus à risque |
 
 ## Membres du groupe
+
+- Paul-Louis LEDOUX
+- Oleksandr VSALOV
+- Max DIECHTIAREFF--HUCK
+- Marega TANDJIGORA 
 
 ## Organisation du projet
 

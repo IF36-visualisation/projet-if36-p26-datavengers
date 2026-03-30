@@ -145,7 +145,7 @@ Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_d
 ## Membres du groupe
 
 - Paul-Louis LEDOUX
-- Oleksandr VSALOV
+- Oleksandr VLASOV
 - Max DIECHTIAREFF--HUCK
 - Marega TANDJIGORA 
 

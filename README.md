@@ -55,7 +55,7 @@ Le fichier CSV contient **689 434 lignes** et **56 variables**.
 ## Membres du groupe
 
 - Paul-Louis LEDOUX
-- Oleksandr VSALOV
+- Oleksandr VLASOV
 - Max DIECHTIAREFF--HUCK
 - Marega TANDJIGORA 
 

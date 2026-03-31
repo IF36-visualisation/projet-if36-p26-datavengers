@@ -124,23 +124,23 @@ Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_d
 
 ## Questions de recherche
 
-| # | Question | Variables utilisées | Visualisation | Objectif |
-| - | -------- | -------------------- | ------------- | -------- |
-| 1 | Comment le nombre total d’accidents évolue-t-il entre 2020 et 2024 ? | an, Num_Acc | courbe (line chart) | Identifier l’évolution globale du nombre d’accidents |
-| 2 | Y a-t-il des tendances saisonnières (plus d’accidents en hiver/été) ? | mois, an, Num_Acc | courbe + heatmap | Mettre en évidence des variations saisonnières |
-| 3 | Où se produisent le plus d’accidents (région, département, ville) ? | dep, com, lat, long, Num_Acc | carte (choroplèthe / points) | Identifier les zones géographiques à risque |
-| 4 | Quelle est la répartition des victimes par âge et par sexe ? | an_nais, sexe | histogrammes | Analyser les profils démographiques des victimes |
-| 5 | À quelles heures de la journée les accidents sont-ils les plus fréquents ? | hrmn, Num_Acc | histogramme / courbe | Identifier les heures les plus accidentogènes |
-| 6 | Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ? | atm, Num_Acc, grav | diagramme en barres | Mesurer l’influence des conditions atmosphériques |
-| 7 | Existe-t-il un seuil (âge, vitesse estimée, heure…) à partir duquel le risque explose ? | an_nais, hrmn, vma, grav | scatter plot + courbe de tendance | Détecter des effets de seuil sur la gravité |
-| 8 | Les motos ont-elles un taux de gravité plus élevé ? | catv, grav | barres comparatives | Comparer la gravité selon le type de véhicule |
-| 9 | Les accidents sont-ils plus graves la nuit que le jour ? | lum, grav | barres empilées | Évaluer l’impact de la luminosité |
-| 10 | Les accidents en agglomération sont-ils différents de ceux hors agglomération ? | agg, grav, Num_Acc | barres comparatives | Comparer les contextes urbain vs rural |
-| 11 | Le type de route influence-t-il la gravité des accidents ? | catr, grav | diagramme en barres | Identifier les routes les plus dangereuses |
-| 12 | L’état de la chaussée influence-t-il les accidents ? | surf, grav, Num_Acc | barres empilées | Comprendre l’impact des conditions de route |
-| 13 | Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ? | nbv, grav, Num_Acc | boxplot / barres | Étudier l’effet de l’infrastructure |
-| 14 | Les équipements de sécurité (ceinture, casque) réduisent-ils la gravité ? | secu1, secu2, secu3, grav | barres comparatives | Évaluer l’efficacité des dispositifs de sécurité |
-| 15 | Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ? | manv, col, grav | diagramme en barres | Identifier les situations les plus à risque |
+| # | Question | Variables utilisées | Visualisation | Objectif | Hypothèse | 
+| - | -------- | -------------------- | ------------- | ----------- | -------------|
+| 1 | Comment le nombre total d’accidents évolue-t-il entre 2020 et 2024 ? | an, Num_Acc | courbe (line chart) | Identifier l’évolution globale du nombre d’accidents | Plus de voiture donc plus d'accidents |
+| 2 | Y a-t-il des tendances saisonnières (plus d’accidents en hiver/été) ? | mois, an, Num_Acc | courbe + heatmap | Mettre en évidence des variations saisonnières | Plus d'accident en hiver fin d'automne (neige, verglas, pas de pneus neige) |
+| 3 | Où se produisent le plus d’accidents (région, département, ville) ? | dep, com, lat, long, Num_Acc | carte (choroplèthe / points) | Identifier les zones géographiques à risque | Dans les grandes villes car plus de circulation et de risques (petits accidents) |
+| 4 | Quelle est la répartition des victimes par âge et par sexe ? | an_nais, sexe | histogrammes | Analyser les profils démographiques des victimes | Personnes agées et plus d'hommes (dépend des accidents). |
+| 5 | À quelles heures de la journée les accidents sont-ils les plus fréquents ? | hrmn, Num_Acc | histogramme / courbe | Identifier les heures les plus accidentogènes | La nuit car la visibilitée est réduite |
+| 6 | Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ? | atm, Num_Acc, grav | diagramme en barres | Mesurer l’influence des conditions atmosphériques | Beaucoup d'influence, augmentent le nombre d'accidents lorsque les conditions sont mauvaises. |
+| 7 | Existe-t-il un seuil (âge, vitesse estimée, heure…) à partir duquel le risque explose ? | an_nais, hrmn, vma, grav | scatter plot + courbe de tendance | Détecter des effets de seuil sur la gravité | Avant 20 et après 70 ans, la nuit, après midi, limite de vitesse autorisée. |
+| 8 | Les motos ont-elles un taux de gravité plus élevé ? | catv, grav | barres comparatives | Comparer la gravité selon le type de véhicule | Oui car peu de protections. |
+| 9 | Les accidents sont-ils plus graves la nuit que le jour ? | lum, grav | barres empilées | Évaluer l’impact de la luminosité | Oui, fatigue visibilité. |
+| 10 | Les accidents en agglomération sont-ils différents de ceux hors agglomération ? | agg, grav, Num_Acc | barres comparatives | Comparer les contextes urbain vs rural | Oui, plus grave. |
+| 11 | Le type de route influence-t-il la gravité des accidents ? | catr, grav | diagramme en barres | Identifier les routes les plus dangereuses | Oui, National et départementale car route en mauvaise état et sérrées. |
+| 12 | L’état de la chaussée influence-t-il les accidents ? | surf, grav, Num_Acc | barres empilées | Comprendre l’impact des conditions de route | Oui. |
+| 13 | Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ? | nbv, grav, Num_Acc | boxplot / barres | Étudier l’effet de l’infrastructure | On ne sait pas (avis divergents) |
+| 14 | Les équipements de sécurité (ceinture, casque) réduisent-ils la gravité ? | secu1, secu2, secu3, grav | barres comparatives | Évaluer l’efficacité des dispositifs de sécurité | Oui, évidemment. |
+| 15 | Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ? | manv, col, grav | diagramme en barres | Identifier les situations les plus à risque | On ne sait pas. |
 
 ## Membres du groupe
 

@@ -1,3 +1,152 @@
-# Fichier à remplacer
+# GroDataDmorv — Analyse de l'équilibrage de Pokémon
 
-Ce README est à remplacer par votre proposition de dataset.
+![Logo de Grodatadmorv](img/grodatadmorv.png)
+
+## Introduction
+
+### Pokémon
+
+Pokémon Rouge et Vert sont des jeux de rôle japonais (J-RPG) sortis initialement en 1996 au Japon. L'objectif du jeu est de capturer, élever et faire s'affronter des créatures, les Pokémon, dans des combats au tour par tour. Pour plus d'informations à ce sujet, se référer à [cette page Wikipédia](https://fr.wikipedia.org/wiki/Système_de_jeu_de_Pokémon) ou à [la page Poképédia dédiée](https://www.pokepedia.fr/Combat_Pokémon)  au système de combat.
+
+### Pourquoi faire de la visu sur Pokémon ?
+
+Premièrement, parce que nous aimons ces jeux. Cette raison se suffirait presque à elle-même si Pokémon n'était pas aussi riche dans ses systèmes de jeu et dans son volet compétitif qu'il ne l'est et qu'il ne l'est devenu. Nous n'arborderons pas ou très peu dans cette analyse les produits dérivés du jeu (cartes, animés, peluches, mangas, transport aérien ([oui oui](https://www.ana.co.jp/fr/fr/the-ana-experience/pikachujet/))…), qui constituent en réalité le cœur de la stratégie pour la licence la plus lucrative de l'Histoire. Les jeux et leurs mécaniques seuls constituent déjà un sujet extrêmement vaste que nous tâcherons toutefois de couvrir dans toute sa diversité.
+
+## Données
+
+Nous proposons d'étudier l'équilibrage de Pokémon sous deux angles complémentaires :
+
+- angle RPG : ce que le jeu propose (stats, attaques, types, talents, répartition des créatures dans l'espace de jeu, etc.)
+- angle compétitif : ce qu'en font les joueurs en stratégie Pokémon (usages, combinaisons, movesets, etc.)
+
+L'idée est de croiser ces deux niveaux pour mieux comprendre si les Pokémon performants en compétitif le sont parce que leurs caractéristiques de base sont plus favorables, ou parce que le contexte du métagame amplifie certains profils.
+
+### Sources
+
+Nos deux sources sont les [statistiques de Smogon](https://smogon.com/stats/), développeurs du simulateur de jeu open-source [*Pokémon Showdown*](https://play.pokemonshowdown.com), et [PokeAPI](https://github.com/pokeapi/pokeapi), une API open-source qui donne des données générales sur les Pokémon.
+
+#### 1) Statistiques Smogon (usage/métagame)
+
+| Champ | Valeur |
+|---|---|
+| Nom | Statistiques Smogon (usage/métagame) |
+| Fichier | `data/gen1ou-0.txt` |
+| Format | `txt` (texte semi-structuré par blocs) |
+| Dimensions | `5 346 lignes`, `107 blocs Pokémon` |
+
+| Variable | Type | Description |
+|---|---|---|
+| `nom du Pokémon` | Catégorielle nominale | - |
+| `raw count` | Quantitative discrète | - |
+| `viability ceiling` | Quantitative discrète (ordinale) | Score de viabilité plafond |
+| `% usage moves` | Quantitative continue | - |
+| `% teammates` | Quantitative continue | - |
+| `checks/counters score` | Quantitative continue | Indicateurs d'efficacité défensive/offensive |
+
+#### 2) PokeAPI - Table Pokémon
+
+| Champ | Valeur |
+|---|---|
+| Nom | PokeAPI - Table Pokémon |
+| Fichier | `data/pokemon.csv` |
+| Format | `csv` |
+| Dimensions | `1 350 observations`, `8 variables` |
+
+| Variable | Type | Description |
+|---|---|---|
+| `id` | Quantitative discrète | - |
+| `identifier` | Textuelle / catégorielle nominale | - |
+| `species_id` | Catégorielle | - |
+| `height` | Quantitative discrète | - |
+| `weight` | Quantitative discrète | - |
+| `base_experience` | Quantitative discrète | - |
+| `order` | Quantitative discrète | - |
+| `is_default` | Binaire | `0` / `1` |
+
+#### 3) PokeAPI - Table des stats
+
+| Champ | Valeur |
+|---|---|
+| Nom | PokeAPI - Table des stats |
+| Fichier | `data/pokemon_stats.csv` |
+| Format | `csv` |
+| Dimensions | `8 100 observations`, `4 variables` |
+
+| Variable | Type | Description |
+|---|---|---|
+| `pokemon_id` | Catégorielle encodée (ID) | - |
+| `stat_id` | Catégorielle encodée (ID) | - |
+| `base_stat` | Quantitative discrète | - |
+| `effort` | Quantitative discrète | - |
+
+#### 4) PokeAPI - Tables des types
+
+| Champ | Valeur |
+|---|---|
+| Nom | PokeAPI - Table des types Pokémon |
+| Fichier | `data/pokemon_types.csv` |
+| Format | `csv` |
+| Dimensions | `2 115 observations`, `3 variables` |
+
+| Variable | Type | Description |
+|---|---|---|
+| `pokemon_id` | Catégorielle encodée (ID) | - |
+| `type_id` | Catégorielle encodée (ID) | - |
+| `slot` | Ordinale discrète | `1` = type principal, `2` = type secondaire |
+
+| Champ | Valeur |
+|---|---|
+| Nom | PokeAPI - Table des noms de types |
+| Fichier | `data/type_names.csv` |
+| Format | `csv` |
+| Dimensions | `210 observations`, `3 variables` |
+
+| Variable | Type | Description |
+|---|---|---|
+| `type_id` | Catégorielle encodée (ID) | - |
+| `local_language_id` | Catégorielle encodée (ID) | - |
+| `name` | Textuelle | - |
+
+
+#### À propos des données
+
+Sous-groupes naturels dans les données :
+
+- par génération
+- par format compétitif (OU, UU, formats spécifiques à une généraiton, etc.)
+- par type
+
+
+Nous nous réservons la possibilité d'enrichir les données présentées ici avec l'entièreté de la base de données de Smogon (les données sont dans le même format, mais pour différents formats de jeux et à différentes dates) ainsi qu'avec les autres fichiers de la base de données de PokeAPI (dans le but de plus simplement croiser les données)
+
+## Plan d'analyse
+
+Nous tâcherons de déterminer comment sont caractérisés les Pokémon les plus performants au niveau compétitif, et comment l'équilibrage des jeux est-il géré entre les mécaniques de RPG et le volet stratégique.
+
+### Questions d'analyse visées
+
+1. Quels Pokémon sont les plus utilisés, et lesquels sont sous-représentés dans le métagame étudié ?
+2. Les Pokémon les plus joués ont-ils des profils de stats particuliers (vitesse, attaque, bulk) ?
+3. Certains types sont-ils sur ou sous-représentés parmi les Pokémon dominants ? Quels types semblent être les meilleurs ? les pires ?
+4. Observe-t-on des combinaisons récurrentes (teammates) qui signalent des synergies fortes ?
+5. Comment sont répartis les « bons » Pokémon dans l'espace de jeu ? Un joueur accède-t-il naturellement à ces Pokémon ?
+
+### Comparaisons et analyses prévues
+
+- usage compétitif vs stats de base
+- usage competitif vs types
+- profils offensifs vs defensifs
+- répartition des Pokémon performant dans l'espace de jeu 
+
+Ce que l'on souhaite obtenir :
+
+- des visualisations lisibles de la structure du metagame
+- des hypothèses sur les mécanismes d'équilibrage
+- des pistes pour expliquer les écarts entre puissance théorique (RPG) et performance réelle (compétitif)
+
+### Limites anticipées
+
+- possible hétérogénéité entre générations/formats si on mélange plusieurs sources
+- biais de popularité (usage joueur) qui ne mesure pas toujours la puissance intrinsèque
+
+

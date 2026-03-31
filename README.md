@@ -172,4 +172,3 @@ Description rapide des dossiers/fichiers :
 - `.gitignore` : règles d’exclusion Git.
 - `README.md` : proposition du projet, questions de recherche et organisation.
 
-## Conclusion

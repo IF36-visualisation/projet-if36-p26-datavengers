@@ -1,0 +1,16 @@
+---
+title: "Projet IF36"
+subtitle: "Analyse des accidents de la route en France"
+output: html_document
+---
+
+## Présentation du projet
+
+Dans ce projet, nous nettoyons, explorons et analysons les données d'accidents
+afin de mieux comprendre les tendances récentes, préparer les données pour
+l'analyse et produire un rapport reproductible.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../R/clean_data.R")
+```

@@ -30,7 +30,6 @@ if(length(lignes_a_virer) > 0) {
 #On supprime ensuite toutes les lignes qui possèdent des NaN.
 
 dataset_clean <- dataset %>%
-  drop_na() %>%
   select(-Num_Acc, 
        -id_vehicule, 
        -num_veh, 
@@ -50,7 +49,9 @@ dataset_clean <- dataset %>%
        -occutc,
        -etatp,
        -voie)
-head(dataset_clean)
+
+dataset_clean <- dataset_clean %>%
+  drop_na()
 
 # Exporter le dataset nettoyé
 write_csv2(dataset_clean, "data/accidents_2020_2024_PROPRE.csv")

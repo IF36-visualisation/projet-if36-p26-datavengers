@@ -11,7 +11,7 @@ library(readr)
 library(tidyr)
 library(dplyr)
 
-dataset <- read_csv2("data/accidents_2020_2024/accidents_2020_2024.csv")
+dataset <- read_csv2("../data/accidents_2020_2024/accidents_2020_2024.csv")
 
 problems(dataset)
 # Certaines lignes présentent des problèmes. Le plus simple est de les supprimer.

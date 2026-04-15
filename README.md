@@ -1,3 +1,39 @@
+malcxxlm
+malcxxlm
+Invisible
+
+ragxorus [SG],  — 31/03/2026 21:48
+Ca me parait super !  Tfacon je crois que si on veut changer des trucs après ca on peut donc bon go avec ca
+DaVy — 31/03/2026 23:14
+Ouais ça me parait bien aussi !
+ragxorus [SG],  — 01/04/2026 13:56
+Jve être un peu en retard j'ai eu un petit problème de transport.
+Xymaal [SLED],  — 01/04/2026 14:03
+https://www.notion.so/cocochart/IF36-Visualiser-des-donn-es-30a2da91adc28021b32fdae24c211259?source=copy_link
+cocochart on Notion
+IF36 - Visualiser des données | Notion
+@TODO
+
+DaVy — 01/04/2026 14:40
+https://fredbl.gitlab.io/datavis/infovis-intro.html#/perception
+ragxorus [SG],  — Hier à 18:16
+J'ai rajouté quelques questions et essayé de trouver des sources (yen a je sais pas ou les trouver et je penses qu'il faudra rajouter des Datasets). Faudrait trouver d'autres questions en plus je penses
+# GroDataDmorv — Analyse de l'équilibrage de Pokémon
+
+![Logo de Grodatadmorv](img/grodatadmorv.png)
+
+## Introduction
+
+readme.md
+8 Ko
+malcxxlm — Hier à 18:38
+Waw j’avais complètement zappé ça. C’est pas mal ça donne des questions en plus côté stratégie, je pense qu’on peut trouver encore 3-4 questions côté rpg/jeu et ça sera pas trop mal. Peut-être étoffer un peu les axes d’analyse en dessous aussi
+Je regarde ça un peu plus tard
+ragxorus [SG],  — Hier à 18:39
+D'acc oki. Il me semble que le prof avait dit au groupe d'a côté que l'idéal ct d'avoir une 20aine de questions. je penses que si on en a 15 c pas mal. C possible qu'il faille rajouté des analyses mais autant le faire une fois qu'on a toute les questions
+DaVy — 08:28
+Alors j'avouerais l'équipe je peux essayer de trouver des questions un peu "generique" mais comme je suis pas expert ca risque d'être pas ouf
+﻿
 # GroDataDmorv — Analyse de l'équilibrage de Pokémon
 
 ![Logo de Grodatadmorv](img/grodatadmorv.png)
@@ -125,28 +161,51 @@ Nous tâcherons de déterminer comment sont caractérisés les Pokémon les plus
 
 ### Questions d'analyse visées
 
-1. Quels Pokémon sont les plus utilisés, et lesquels sont sous-représentés dans le métagame étudié ?
-2. Les Pokémon les plus joués ont-ils des profils de stats particuliers (vitesse, attaque, bulk) ?
-3. Certains types sont-ils sur ou sous-représentés parmi les Pokémon dominants ? Quels types semblent être les meilleurs ? les pires ?
-4. Observe-t-on des combinaisons récurrentes (teammates) qui signalent des synergies fortes ?
-5. Comment sont répartis les « bons » Pokémon dans l'espace de jeu ? Un joueur accède-t-il naturellement à ces Pokémon ?
+#### Stratégie
 
+1. Quels Pokémon sont les plus utilisés, et lesquels sont sous-représentés dans le métagame étudié ? (`smogon`)
+2. Les Pokémon les plus joués ont-ils des profils de stats particuliers (vitesse, attaque, bulk) ? (`smogon`, `pokemon_stats.csv`)
+3. Quel est la génération la plus représentée parmis les pokemon les plus joués de chaque génération ? (`smogon`)
+4. En regardant sur plusieurs Metagame smogon au fil des ans, peut-on voir une évolution dans l'utilisation des Pokemon des premières générations ? Si oui dans quels sens et quelles peuvent être les raisons ? (`smogon`)
+5. Observe-t-on des combinaisons récurrentes (teammates) qui signalent des synergies fortes ? (`smogon`)
+6. Quel type d'attaque sont les plus utilisés dans les différentes générations ? Est-ce corrélé avec le type le plus présent de chaque tier ? (`smogon`)
+7. Quels facteurs (attaques, talents, stats) expliquent le bannissement d'un Pokémon de l'OverUsed ? (`smogon`, `moves.csv`, `abilities.csv`, `pokemon_stats.csv`)
+
+#### Équilibrage & Game Design
+
+8. La distribution des statistiques est-elle équlibrée au sein d'une même génération ? Certains Pokémon ont-ils un profil plus spécialisé (ex: haute attaque faible attaque spéciale), certains sont-ils plus homogènes ? (`pokemon_stats.csv`)
+9. Certains types sont-ils sur ou sous-représentés parmi les Pokémon dominants ? Quels types semblent être les meilleurs ? les pires ? (`smogon`, `pokemon.csv`, `pokemon_types.csv`)
+10. Quels sont les doubles types les plus représentés dans le jeu ? Y-a-t-il un type qui est moins/plus associés que les autres types ? (`pokemon_types.csv`)
+11. Certains types ont-ils un avantage offensif/défensif intrinsèque dans le tableau des faiblesses/résistances (couverture, immunités) ? Est-ce que ça se reflète dans les choix de design des Pokémon de ces types ? (`type_efficacy.csv`, `pokemon_types.csv`)
+12. Les nouvelles générations introduisent-elles beaucoup plus d'attaque et de talent uniques que les anciennes ? (`moves.csv`, `abilities.csv`)
+13. Quels sont les Pokémon les plus communs, ceux que l'on va rencontrer le plus fréquemment dans chaque région ? Les plus rares ? (`encounters.csv`, `locations.csv`)
+14. Comment sont répartis les « bons » Pokémon dans l'espace de jeu ? Un joueur accède-t-il naturellement à ces Pokémon ? (`smogon`, `encounters.csv`, `locations.csv`)
+15. Y a-t-il une corrélation entre le BST (Base Stat Total) d'un Pokémon et son stade d'évolution / son moment d'obtention dans le jeu ? (`pokemon_stats.csv`, `pokemon_evolution.csv`, `encounters.csv`)
+16. Comment évolue la difficulté des dresseurs (stats des Pokémon adverses) ou des Pokémon sauvages au fil du scénario ? La courbe de progression est-elle équilibrée ? (`pokemon_stats.csv`, `encounters.csv`)
+17. Le "taux de capture" (Capture Rate) est-il strictement anti-corrélé aux statistiques du Pokémon ? Certains Pokémon faibles sont-ils artificiellement insupportables à attraper ? A-t-il baissé en moyenne dans le temps ? (`pokemon_species.csv`, `pokemon_stats.csv`)
+
+#### Conception du bestiaire
+
+18. Existe-t-il des stéréotypes de conception entre l'apparence des Pokémon (couleur principale, forme physique) et leur type ou leurs statistiques ? (e.g.: les Pokémon rouges sont-ils généralement de type Feu et ont-ils une attaque plus élevée ?) (`pokemon_colors.csv`, `pokemon_shapes.csv`, `pokemon_species.csv`, `pokemon_stats.csv`)
+19. L'habitat naturel d'un Pokémon (grotte, forêt, zone urbaine…) correspond-il à son type (e.g.: Plante = forêt), ou y a-t-il une certaine diversité par environnement ? (`pokemon_habitats.csv`, `pokemon_types.csv`, `pokemon_species.csv`)
+20. Comment ont évolué les caractéristiques biologiques telles que la taille, le poids ou le dimorphisme sexuel au fil des générations ? (`pokemon.csv`, `pokemon_species.csv`)
+ 
 ### Comparaisons et analyses prévues
 
-- usage compétitif vs stats de base
-- usage competitif vs types
-- profils offensifs vs defensifs
-- répartition des Pokémon performant dans l'espace de jeu 
+- usage compétitif vs Puissance brute (Stats & Types) : déterminer si le metagame est dicté par les mathématiques (BST élevés et efficacités des types supérieurs) ou si d'autres paramètres entrent en jeu
+- narratif et progression vs stratégie : confronter l'accessibilité d'un Pokémon (taux de rencontre, localisation) avec sa viabilité à haut niveau, afin de déduire si le jeu est pensé pour "récompenser" le joueur en fin d'aventure
+- profils offensifs vs défensifs : mettre en lumière l'architecture classique des combats en comparant les tendances des "sweepers" (haute vitesse / attaque) face aux "tanks" (haut bulk)
+- design visuel vs rôle en jeu : découvrir les éventuelles règles de conception explorant les corrélations entre couleurs, formes, habitats et rôles statistiques.
 
 Ce que l'on souhaite obtenir :
 
-- des visualisations lisibles de la structure du metagame
+- des visualisations lisibles de la structure du jeu et du metagame
 - des hypothèses sur les mécanismes d'équilibrage
 - des pistes pour expliquer les écarts entre puissance théorique (RPG) et performance réelle (compétitif)
 
 ### Limites anticipées
 
-- possible hétérogénéité entre générations/formats si on mélange plusieurs sources
+- possible hétérogénéité entre générations : les statistiques, les attaques mécaniques et parfois même le type des Pokémon évoluant d'une génération à l'autre, croiser plusieurs générations sans les filtrer strictement peut engendrer des incohérences.
 - biais de popularité (usage joueur) qui ne mesure pas toujours la puissance intrinsèque
-
-
+- la complexité d'agrégation d'une créature : évaluer mathématiquement un Pokémon pour la visualisation implique de faire l'impasse sur des détails contextuels : la viabilité se base fortement sur les spécificités uniques des attaques et des talents (Ability), ce qui est difficilement réductible à des statistiques globales sans perte sémantique
+- la nature complexe de l'angle RPG : des paramètres majeurs de la difficulté ("IA" de jeu, utilisation d'objets curatifs par les PNJ, composition des arènes) ne sont pas quantifiables via nos données actuelles, et limitent l'exactitude des conclusions sur la difficulté 

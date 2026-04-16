@@ -14,3 +14,89 @@ l'analyse et produire un rapport reproductible.
 knitr::opts_chunk$set(echo = TRUE)
 source("../R/clean_data.R")
 ```
+
+
+### Question Max
+#### **Les accidents en agglomération sont-ils différents de ceux hors agglomération ?** (en terme de gravité et volume)
+
+Pour répondre à cette question j'ai décidé de faire un barplot (`geom_bar`) une barre pour les accidents en agglomération et une aute pour ceux hors agglomération. De plus, avec la fonction `possiton = stack` on peut observer la gravité de l'accident sur les passagers/conducteur.
+
+```{r}
+library(tibble)
+library(tidyr)
+library(scales)
+library(ggplot2)
+library(dplyr)
+df <- read.csv("../data/accidents_2020_2024_PROPRE.csv", sep = ";")
+```
+```{r}
+print(head(df))
+```
+
+```{r}
+# On crée d'abord le tableau nettoyé et on cré des catégories
+df_plot <- df %>%
+  filter(agg %in% c(1, 2), grav %in% c(1, 2, 3, 4)) %>% # permet de ne pas prendre les NA
+  mutate(
+    Agglomeration = factor(agg, 
+                           levels = c(1, 2), # On transforme les numéros en catégories distinctes et en leur donnant un ordre choisi
+                           labels = c("Hors agglomération", "En agglomération")),
+    Gravite = factor(grav, 
+                     levels = c(1, 4, 3, 2), 
+                     # Ici on choisit un ordre spécifique de gravité
+                     labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  )
+
+ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
+  geom_bar(position = "stack") + # Stack permet de ne garder les proportions (plus intérressant dans le cas d'une comparaison de volume)
+  scale_fill_manual(values = c("Indemne" = "#1a9641",
+                               "Blessé léger" = "#fdae61",
+                               "Blessé hospitalisé" = "#d7191c",
+                               "Tué" = "#000000")) +
+  labs(
+    title = "Gravité des accidents : En agglomération vs hors agglomération",
+    subtitle = "La majorité des accidents ont lieu en agglomération (double)",
+    x = "",
+    y = "Nombre d'usagers impliqués",
+    fill = "Niveau de gravité",
+    caption = "Source : Données BAAC 2020-2024"
+  ) +
+  theme_minimal()
+  
+
+```
+De ce premier graphique, on peut observer une nette différence sur la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents on tendances à être plus grave hors agglomération. Pour observer ce phénomène de plus près, voici un second graphiques similaire au premier mais en étudiant seulement les accidents graves (bléssé hospitalisé et tué).
+```{r}
+# Deuxième df en prennant cette fois-ci uniquement les bléssés et tués
+df_plot <- df %>%
+  filter(agg %in% c(1, 2), grav %in% c(3, 2)) %>% # On ne prend que les bléssés et tué
+  mutate(
+    Agglomeration = factor(agg, 
+                           levels = c(1, 2), # On transforme les numéros en catégories distinctes et en leur donnant un ordre choisi
+                           labels = c("Hors agglomération", "En agglomération")),
+    Gravite = factor(grav, 
+                     levels = c(3, 2), 
+                     # Ici on choisit un ordre spécifique de gravité
+                     labels = c("Blessé hospitalisé", "Tué"))
+  )
+
+ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
+  geom_bar(position = "stack") + # Stack permet de ne garder les proportions (plus intérressant dans le cas d'une comparaison de volume)
+  stat_count(geom = "text", 
+             aes(label = after_stat(count)), 
+             position = position_stack(vjust = 0.5), 
+             color = "white", size = 4, fontface = "bold") +
+  scale_fill_manual(values = c("Blessé hospitalisé" = "#d7191c",
+                               "Tué" = "#000000")) +
+  labs(
+    title = "Accidents graves en agglomération vs hors agglomération",
+    subtitle = "Les accidents hors agglomération présentent une part plus importante de victimes graves",
+    x = "",
+    y = "Nombre d'usagers impliqués",
+    fill = "Niveau de gravité",
+    caption = "Source : Données BAAC 2020-2024"
+  ) +
+  theme_minimal()
+  
+```
+Dans ce second graphique, le resultat est claire : Les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de bléssé hospitalisé est aussi supérieur (environ 4000 bléssés hospitalisé en plus soit 8,21%)

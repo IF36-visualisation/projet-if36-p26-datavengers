@@ -14,3 +14,47 @@ l'analyse et produire un rapport reproductible.
 knitr::opts_chunk$set(echo = TRUE)
 source("../R/clean_data.R")
 ```
+# Les motos ont-elles un taux de gravité plus élevé ?
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(readr)
+library(ggplot2)
+
+dataset <- read.csv2("../data/accidents_2020_2024_PROPRE/accidents_2020_2024_PROPRE.csv")
+head(dataset)
+
+df_plot <- dataset %>%
+  #On filtre pour ne garder que Voitures (7) et Motos/Scooters
+  filter(catv %in% c(7, 30, 31, 32, 33, 34)) %>%
+  
+  #On transforme les chiffres en mots explicites
+  mutate(
+    Type_Vehicule = ifelse(catv == 7, "Voiture", "Moto"),
+    Gravite_Label = case_when(
+      grav == 1 ~ "Indemne",
+      grav == 2 ~ "Tué",
+      grav == 3 ~ "Blessé Hosp.",
+      grav == 4 ~ "Blessé Léger"
+    ),
+  
+    Gravite_Label = factor(Gravite_Label, 
+                           levels = c("Indemne", "Blessé Léger", "Blessé Hosp.", "Tué"))
+  )
+
+library(scales)
+
+ggplot(df_plot, aes(x = Type_Vehicule, fill = Gravite_Label)) +
+  geom_bar(position = "fill") + 
+  scale_y_continuous(labels = percent) + 
+  scale_fill_brewer(palette = "Reds") + 
+  labs(title = "Répartition de la gravité par type de véhicule",
+       subtitle = "Comparaison en pourcentage (Proportions relatives)",
+       x = "Catégorie de véhicule",
+       y = "Proportion des accidents",
+       fill = "Gravité") +
+  theme_minimal()
+```
+
+Le graphique montre très clairement que les accidents de moto sont proportionnellement beaucoup plus graves que les accidents de voiture. La probabilité de s'en sortir indemne est drastiquement plus faible en deux-roues.

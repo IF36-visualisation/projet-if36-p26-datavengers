@@ -1,174 +1,239 @@
-# Projet IF36
+# Vin & Météo : l'influence du climat sur la qualité des vins
+
+> *"Le vin est le reflet du ciel, de la terre et du travail des hommes."*
+
+## Membres
+
+| L'équipe Avatar      |
+| -------------------- |
+| Samuel FANDIO NJIKAM |
+| Samella LEUKOUO      |
+| Fanta DEMBELE        |
+|Mohamed Mehdi Trabelssi       |
+
+---
+
+## Sommaire
+
+- [Introduction](#introduction)
+  - [Données](#données)
+  - [Plan d'analyse](#plan-danalyse)
 
 ## Introduction
 
-### Contexte et objectif
+### Données
 
-Dans le cadre de ce projet, nous avons exploité un jeu de données consolidé issu du fichier BAAC (Bulletin d’Analyse des Accidents Corporels). Les données sources proviennent du jeu de données officiel **[Bases de données annuelles des accidents corporels de la circulation routière - 2005 à 2024](https://www.data.gouv.fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2024)**, disponible sur la plateforme data.gouv.fr.
+Notre jeu de données est issu de la plateforme **Kaggle** : [Wine Growth Weather](https://www.kaggle.com/datasets/abcd334/wine-growth-weather/), constitué par Anton Budnyak (2020) et enrichi de données météorologiques issues de [Open-Meteo.com](https://open-meteo.com/).
 
-Notre fichier principal `accidents_2020_2024.csv` a été construit pour l’analyse en fusionnant, pour chaque année de 2020 à 2024, les 4 tables BAAC suivantes :
-- `usagers`
-- `vehicules`
-- `lieux`
-- `caracteristiques`
+Le vin est un produit intimement lié aux conditions climatiques de sa région de production. La vigne est particulièrement sensible aux variations de température, d'ensoleillement et de précipitations durant la saison de croissance. Ce dataset a précisément été conçu pour explorer cette relation : les données météorologiques correspondent à l'**année précédant la production du vin**, ce qui nous permet d'évaluer l'impact du climat sur la note et la qualité perçue du vin.
 
-L’objectif est de mener une exploration visuelle des accidents corporels en cherchant des relations entre la gravité, le contexte routier, les profils d’usagers, les véhicules et la temporalité. Nous voulons identifier ce qui semble augmenter le risque d’accident grave, tout en restant critiques sur les limites de la donnée. 
+Nous avons choisi ce sujet car il croise deux domaines riches en données : l'**œnologie** et la **climatologie**. Il offre une problématique centrale claire et engageante : *les conditions météorologiques durant la saison de croissance des raisins permettent-elles de prédire la qualité d'un vin ?*
 
-## Structure et nature des données
+**Le dataset**
 
-Le fichier CSV contient **689 434 lignes** et **56 variables**. 
+Les données se présentent initialement sous la forme de **4 fichiers CSV**, un par type de vin. Nous les avons fusionnés en un dataset unique après nettoyage, en ajoutant une colonne `type` pour distinguer les catégories.
 
-Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_de_données_annuelles.pdf'. Nous avons décider de ne pas toutes les mettre pour ne surcharger les tableaux déjà conséquents.
+| Type de vin | Observations |
+|-------------|-------------|
+| Rouge (*Red*) | 8 658 |
+| Blanc (*White*) | 3 759 |
+| Rosé (*Rose*) | 394 |
+| Effervescent (*Sparkling*) | 279 |
+| **Total fusionné** | **13 090** |
 
----
+Le dataset final comporte **71 variables** et **13 090 observations**, réparties sur des vins produits entre **1961 et 2020**, dans **30 pays** et **plus de 1 200 régions viticoles**.
 
-### 1. Identifiants (7 variables)
-| Variable | Note (Libellé) | Type | Description |
-| :--- | :--- | :--- | :--- |
-| **Num_Acc** | Identifiant Accident | VARCHAR | Identifiant unique de l'accident. |
-| **id_vehicule** | Identifiant Véhicule | VARCHAR | Identifiant unique du véhicule. |
-| **num_veh** | Numéro Véhicule | VARCHAR | Identifiant relatif (A01, B01...). |
-| **num_veh_veh** | Numéro Véhicule (Lien) | VARCHAR | Doublon technique de `num_veh`. |
-| **id_usager** | Identifiant Usager | VARCHAR | Identifiant unique de l'usager. |
-| **annee_dataset** | Année Source | INTEGER | Année du fichier d'origine. |
-| **adr** | Adresse | VARCHAR | Adresse postale simplifiée. |
+Les variables se regroupent en quatre grandes familles :
 
-*Note : Ces variables peuvent être surpprimer car inutiles dans l'annalyse*
+*Informations sur le vin (6 variables)*
 
----
+| Variable | Type | Description |
+|----------|------|-------------|
+| `Name` | `character` | Nom du vin |
+| `Country` | `character` | Pays de production |
+| `Region` | `character` | Région viticole |
+| `Winery` | `character` | Nom du domaine / producteur |
+| `Year` | `integer` | Millésime du vin |
+| `type` | `factor` | Type de vin (Red, White, Rose, Sparkling) |
 
-### 2. Variables temporelles (5 variables)
-| Variable | Note (Libellé) | Type | Format / Valeurs |
-| :--- | :--- | :--- | :--- |
-| **an** | Année | INTEGER | Format YYYY. |
-| **mois** | Mois | INTEGER | 1 à 12. |
-| **jour** | Jour | INTEGER | 1 à 31. |
-| **hrmn** | Heure et Minute | VARCHAR | Format HH:MM. |
-| **an_nais** | Année naissance | INTEGER | Année de naissance de l'usager. |
+*Métriques commerciales et de notation (3 variables)*
 
----
+| Variable | Type | Description |
+|----------|------|-------------|
+| `Rating` | `double` | Note moyenne des utilisateurs (2.5 – 4.9) |
+| `NumberOfRatings` | `integer` | Nombre d'évaluations reçues |
+| `Price` | `double` | Prix en euros (3.55 – 3 410 €) |
 
-### 3. Profil et état de l'usager (12 variables)
-| Variable | Note (Libellé) | Type | Valeurs |
-| :--- | :--- | :--- | :--- |
-| **place** | Place occupée | INTEGER | 1:Conducteur, 2:Passager AV, 10:Piéton... |
-| **catu** | Catégorie usager | INTEGER | 1:Conducteur, 2:Passager, 3:Piéton. |
-| **grav** | Gravité | INTEGER | 1:Indemne, 2:Tué, 3:Hospit, 4:Léger. |
-| **sexe** | Sexe | INTEGER | 1:Masculin, 2:Féminin. |
-| **trajet** | Motif déplacement | INTEGER | 1:Travail, 5:Loisirs, 9:Autre. |
-| **secu1** | Équipement 1 | INTEGER | 1:Ceinture, 2:Casque, 9:Non utilisé. |
-| **secu2** | Équipement 2 | INTEGER | Idem secu1. |
-| **secu3** | Équipement 3 | INTEGER | Idem secu1. |
-| **locp** | Localis. piéton | INTEGER | 1:Sur chaussée, 5:Trottoir... |
-| **actp** | Action piéton | INTEGER | 3:Traversant, 6:Statique... |
-| **etatp** | État piéton | INTEGER | 1:Seul, 2:Accompagné, 3:En groupe. |
-| **occutc** | Occupants TC | INTEGER | Nb d'occupants dans les transports en commun. |
+*Géolocalisation (2 variables)*
 
----
+| Variable | Type | Description |
+|----------|------|-------------|
+| `lat` | `double` | Latitude de la région de production |
+| `lng` | `double` | Longitude de la région de production |
 
-### 4. Caractéristiques du véhicule (7 variables)
-| Variable | Note (Libellé) | Type | Valeurs |
-| :--- | :--- | :--- | :--- |
-| **senc** | Sens circulation | INTEGER | 1:Sens croissant, 2:Sens inverse. |
-| **catv** | Catégorie véhicule | INTEGER | 07:VL, 01:Vélo, 33:Moto... |
-| **obs** | Obstacle fixe | INTEGER | 1:Véh. stationné, 2:Arbre, 10:Mur... |
-| **obsm** | Obstacle mobile | INTEGER | 1:Piéton, 2:Véhicule, 6:Animal. |
-| **choc** | Point de choc | INTEGER | 1:Avant, 2:Arrière, 3:Droit, 4:Gauche. |
-| **manv** | Manœuvre | INTEGER | 1:Sans changement, 15:Tourne G... |
-| **motor** | Motorisation | INTEGER | 1:Hydrocarbures, 3:Élec, 4:Hydrogène. |
+*Données météorologiques mensuelles (60 variables)*
 
-*Note : Là aussi des variables sont inutiles et peuvent donc être surpprimées*
+Pour chacun des **12 mois** (Jan à Dec), 5 indicateurs climatiques sont renseignés, soit **60 colonnes** de la forme `Mois_indicateur` :
+
+| Suffixe | Type | Description |
+|---------|------|-------------|
+| `_tavg` | `double` | Température moyenne (°C) |
+| `_tmin` | `double` | Température minimale (°C) |
+| `_tmax` | `double` | Température maximale (°C) |
+| `_prcp` | `double` | Précipitations (mm) |
+| `_tsun` | `double` | Durée d'ensoleillement (secondes, seuil > 120 W/m²) |
+
+**Sous-groupes notables**
+
+- **Par type** : 4 catégories de vins aux profils très différents en termes de volume, de région et de prix
+- **Par pays** : 30 pays représentés, avec une forte dominance de la France, de l'Italie et de l'Espagne
+- **Par millésime** : des vins de 1961 à 2020, pour une analyse temporelle
+- **Par gamme de prix** : distribution très asymétrique, de vins d'entrée de gamme à des bouteilles d'exception
 
 ---
 
-### 5. Localisation et contexte (10 variables)
-| Variable | Note (Libellé) | Type | Valeurs |
-| :--- | :--- | :--- | :--- |
-| **dep** | Département | VARCHAR | Code (ex: 75, 2A). |
-| **com** | Commune | VARCHAR | Code INSEE commune. |
-| **agg** | Agglomération | INTEGER | 1:Hors agglo, 2:En agglo. |
-| **int** | Intersection | INTEGER | 1:Hors int., 6:Giratoire... |
-| **lum** | Lumière | INTEGER | 1:Jour, 5:Nuit avec écl. |
-| **atm** | Météo | INTEGER | 1:Normale, 2:Pluie, 4:Neige... |
-| **col** | Type collision | INTEGER | 1:Frontale, 3:Côté, 6:Autre. |
-| **lat** | Latitude | FLOAT | Coordonnée |
-| **long** | Longitude | FLOAT | Coordonnée |
-| **situ** | Situation | INTEGER | 1:Sur chaussée, 3:Accotement, 4:Trottoir. |
+### Plan d'analyse
+
+Notre analyse s'articule autour de **6 axes indépendants**, progressant du descriptif vers l'analytique et l'explicatif. Chaque question est conçue pour éclairer un aspect distinct du dataset, avec des variables, des graphiques et une approche propres.
+
+#### Axe 1 — Distributions et structure
+
+##### Q1 — Comment se distribuent les notes des vins, et cette distribution varie-t-elle selon le type ?
+
+**Objectif :** Établir un portrait de base de la variable cible (`Rating`) avant toute analyse explicative. Il s'agit de comprendre si les notes sont concentrées sur une plage étroite ou bien réparties, et si les 4 types de vins présentent des profils de notation distincts.
+
+**Variables :** `Rating`, `type`
+
+**Graphique :** Violin plot + boxplot superposés, un par type de vin
+
+**Approche :** On représente côte à côte les 4 distributions de `Rating` par type. Le violin plot révèle la forme complète de la distribution (asymétrie, multi-modalité), tandis que la boxplot superposée permet de lire rapidement la médiane et les quartiles. On cherchera en particulier si les effervescents ont une distribution décalée vers le haut, ou si les rosés sont plus concentrés autour d'une note moyenne.
+
+##### Q2 — Le nombre d'évaluations est-il suffisant pour que les notes soient fiables ?
+
+**Objectif :** Identifier un biais potentiel majeur : une note de 4.5 basée sur 8 avis est très différente d'une note de 4.5 basée sur 2 000 avis. Cette question définit un seuil de fiabilité que nous appliquerons comme filtre dans les analyses suivantes.
+
+**Variables :** `NumberOfRatings`, `Rating`, `type`
+
+**Graphique :** Scatter plot (`NumberOfRatings` en x, `Rating` en y) avec échelle logarithmique sur l'axe x, coloré par `type`
+
+**Approche :** On trace la relation entre le nombre d'avis et la note. Si les vins peu notés (ex. < 50 avis) présentent une forte dispersion verticale, cela confirme leur manque de fiabilité. On trace une ligne de seuil vertical et on observe que la variance des notes se réduit au-delà. Ce seuil sera appliqué comme filtre dans les axes suivants pour garantir des comparaisons robustes.
 
 ---
 
-### 6. Infrastructure et voie (16 variables)
-| Variable | Note (Libellé) | Type | Valeurs |
-| :--- | :--- | :--- | :--- |
-| **catr** | Catégorie route | INTEGER | 1:Autoroute, 3:Départementale... |
-| **voie** | Nom de la voie | VARCHAR | Nom de la rue ou route. |
-| **v1** | Numéro route | VARCHAR | Numéro de la voie. |
-| **v2** | Indice route | VARCHAR | Indice alphanumérique de la voie. |
-| **circ** | Régime circulation | INTEGER | 1:Sens unique, 2:Bidirectionnel. |
-| **nbv** | Nb de voies | INTEGER | Nombre total de voies. |
-| **vosp** | Voie réservée | INTEGER | 1:Piste cyclable, 2:Voie bus. |
-| **prof** | Profil route | INTEGER | 1:Plat, 2:Pente, 3:Sommet. |
-| **pr** | Point de repère | VARCHAR | Numéro du PR. |
-| **pr1** | Distance au PR | VARCHAR | Distance en mètres au PR. |
-| **plan** | Tracé en plan | INTEGER | 1:Rectiligne, 2:Courbe. |
-| **lartpc** | Largeur TPC | FLOAT | Largeur du terre-plein central. |
-| **larrout** | Largeur chaussée | FLOAT | Largeur de la route (hors accotements). |
-| **surf** | État surface | INTEGER | 1:Normale, 2:Mouillée, 7:Verglacée. |
-| **infra** | Aménagement | INTEGER | 1:Souterrain, 3:Échangeur, 5:Pont. |
-| **vma** | Vitesse autorisée | INTEGER | Vitesse max en km/h. |
+#### Axe 2 — Prix et qualité : le prix fait-il le vin ?
+
+##### Q3 — Existe-t-il une corrélation entre le prix et la note, et est-elle uniforme entre les types de vins ?
+
+**Objectif :** Tester l'hypothèse commune selon laquelle "plus un vin est cher, mieux il est noté". Cette relation est loin d'être garantie et peut varier fortement selon le type : un effervescent cher est souvent un Champagne de prestige, tandis qu'un rouge très cher peut être une bouteille de collection rarement consommée.
+
+**Variables :** `Price`, `Rating`, `type`
+
+**Graphique :** Scatter plot avec axe `Price` en échelle logarithmique et droite de régression par type (`geom_smooth`), facetté par `type`
+
+**Approche :** On applique une transformation logarithmique sur `Price` pour corriger la forte asymétrie de cette variable (quelques bouteilles très chères écrasent l'axe). On trace une droite de régression par type pour comparer les pentes : une pente positive et significative valide l'hypothèse pour ce type. On s'attend à des comportements différents entre rosés (gamme de prix serrée) et rouges (gamme très large).
+
+##### Q4 — Quelles régions viticoles produisent les vins les mieux notés en moyenne ?
+
+**Objectif :** Identifier les *terroirs* d'excellence dans les données, indépendamment du prix. Une région peut produire des vins très bien notés à prix modéré, ou inversement des vins chers mais ordinaires.
+
+**Variables :** `Region`, `Country`, `Rating`, `NumberOfRatings`
+
+**Graphique :** Bar chart horizontal des 20 régions avec la note moyenne la plus élevée, filtré sur les régions comptant au moins 30 vins évalués, coloré par `Country`
+
+**Approche :** On agrège le dataset par région pour calculer la note moyenne et le nombre de vins. On filtre les régions avec trop peu d'observations (seuil défini à partir de Q2) pour éviter les régions anecdotiques. Le bar chart horizontal permet de lire facilement les noms de régions souvent longs, et la couleur par pays révèle si les meilleures régions sont concentrées dans un même pays ou dispersées géographiquement.
+
 ---
-*Note : Les valeurs `-1` ou `0` indiquent une donnée non renseignée ou non applicable.*
 
+#### Axe 3 — Millésimes et effet du temps
 
-## Plan d’analyse
+##### Q5 — La note moyenne des vins évolue-t-elle selon le millésime, et cet effet traduit-il un vieillissement réel ou un biais de survie ?
 
-## Questions de recherche
+**Objectif :** Déterminer si les vieux millésimes sont mieux notés parce que les vins vieillis sont intrinsèquement meilleurs (*effet qualité*), ou parce que seules les bouteilles d'exception ont survécu et sont encore notées aujourd'hui (*biais de survie*). Ces deux explications sont opposées et conditionnent l'interprétation des analyses climatiques sur les anciens millésimes.
 
-| # | Question | Variables utilisées | Visualisation | Objectif | Hypothèse | 
-| - | -------- | -------------------- | ------------- | ----------- | -------------|
-| 1 | Comment le nombre total d’accidents évolue-t-il entre 2020 et 2024 ? | an, Num_Acc | courbe (line chart) | Identifier l’évolution globale du nombre d’accidents | Plus de voiture donc plus d'accidents |
-| 2 | Y a-t-il des tendances saisonnières (plus d’accidents en hiver/été) ? | mois, an, Num_Acc | courbe + heatmap | Mettre en évidence des variations saisonnières | Plus d'accident en hiver fin d'automne (neige, verglas, pas de pneus neige) |
-| 3 | Où se produisent le plus d’accidents (région, département, ville) ? | dep, com, lat, long, Num_Acc | carte (choroplèthe / points) | Identifier les zones géographiques à risque | Dans les grandes villes car plus de circulation et de risques (petits accidents) |
-| 4 | Quelle est la répartition des victimes par âge et par sexe ? | an_nais, sexe | histogrammes | Analyser les profils démographiques des victimes | Personnes agées et plus d'hommes (dépend des accidents). |
-| 5 | À quelles heures de la journée les accidents sont-ils les plus fréquents ? | hrmn, Num_Acc | histogramme / courbe | Identifier les heures les plus accidentogènes | La nuit car la visibilitée est réduite |
-| 6 | Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ? | atm, Num_Acc, grav | diagramme en barres | Mesurer l’influence des conditions atmosphériques | Beaucoup d'influence, augmentent le nombre d'accidents lorsque les conditions sont mauvaises. |
-| 7 | Existe-t-il un seuil (âge, vitesse estimée, heure…) à partir duquel le risque explose ? | an_nais, hrmn, vma, grav | scatter plot + courbe de tendance | Détecter des effets de seuil sur la gravité | Avant 20 et après 70 ans, la nuit, après midi, limite de vitesse autorisée. |
-| 8 | Les motos ont-elles un taux de gravité plus élevé ? | catv, grav | barres comparatives | Comparer la gravité selon le type de véhicule | Oui car peu de protections. |
-| 9 | Les accidents sont-ils plus graves la nuit que le jour ? | lum, grav | barres empilées | Évaluer l’impact de la luminosité | Oui, fatigue visibilité. |
-| 10 | Les accidents en agglomération sont-ils différents de ceux hors agglomération ? | agg, grav, Num_Acc | barres comparatives | Comparer les contextes urbain vs rural | Oui, plus grave. |
-| 11 | Le type de route influence-t-il la gravité des accidents ? | catr, grav | diagramme en barres | Identifier les routes les plus dangereuses | Oui, National et départementale car route en mauvaise état et sérrées. |
-| 12 | L’état de la chaussée influence-t-il les accidents ? | surf, grav, Num_Acc | barres empilées | Comprendre l’impact des conditions de route | Oui. |
-| 13 | Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ? | nbv, grav, Num_Acc | boxplot / barres | Étudier l’effet de l’infrastructure | On ne sait pas (avis divergents) |
-| 14 | Les équipements de sécurité (ceinture, casque) réduisent-ils la gravité ? | secu1, secu2, secu3, grav | barres comparatives | Évaluer l’efficacité des dispositifs de sécurité | Oui, évidemment. |
-| 15 | Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ? | manv, col, grav | diagramme en barres | Identifier les situations les plus à risque | On ne sait pas. |
+**Variables :** `Year`, `Rating`, `NumberOfRatings`, `type`
 
-## Membres du groupe
+**Graphique :** Line chart de la note moyenne par millésime (1990–2020) avec bande de confiance (`geom_ribbon`), facetté par `type`, complété d'un graphique du nombre d'observations par année
 
-- Paul-Louis LEDOUX
-- Oleksandr VLASOV
-- Max DIECHTIAREFF--HUCK
-- Marega TANDJIGORA 
+**Approche :** On calcule la note moyenne et le nombre d'observations par année et par type. On trace l'évolution temporelle avec une bande de confiance pour visualiser l'incertitude. Si les années anciennes cumulent très peu d'observations mais des notes très élevées, cela révèle un biais de survie. Ce constat sera utilisé pour borner les analyses climatiques aux millésimes récents (ex. après 1995) où les données sont plus denses et fiables.
 
-## Organisation du projet
+---
 
-Le dépôt est organisé de la manière suivante :
+#### Axe 4 — Climat et qualité : le cœur de la problématique
 
-```text
-projet-if36-p26-datavengers/
-├── data/
-│   └── accidents_2020_2024.csv
-├── peer-review/
-├── shiny/
-├── .gitignore
-└── README.md
-```
+##### Q6 — Quels mois de l'année de croissance ont la plus forte corrélation avec la note du vin ?
 
-Description rapide des dossiers/fichiers :
+**Objectif :** Identifier les périodes climatiques clés du cycle de la vigne (floraison en mai-juin, véraison en juillet-août, vendanges en septembre) en cherchant lesquelles ont le plus d'impact statistique sur la note finale. Cette question est exploratoire et sert de guide pour les analyses suivantes.
 
-- `data/` : contient le dataset principal utilisé dans l’analyse.
-- `data/accidents_2020_2024.csv` : base fusionnée des accidents (2020–2024), obtenue à partir de `usagers`, `vehicules`, `lieux`, `caracteristiques`.
-- `peer-review/` : éléments liés à l’évaluation/relecture par les pairs.
-- `shiny/` : code de l’application Shiny (partie interactive du projet).
-- `.gitignore` : règles d’exclusion Git.
-- `README.md` : proposition du projet, questions de recherche et organisation.
+**Variables :** `Rating` et les 60 variables météo mensuelles (`Jan_tavg` à `Dec_tsun`)
 
+**Graphique :** Heatmap de corrélation, avec les 12 mois sur l'axe x et les 5 indicateurs météo (`tavg`, `tmin`, `tmax`, `prcp`, `tsun`) sur l'axe y, la couleur encodant le coefficient de corrélation avec `Rating`
+
+**Approche :** On calcule le coefficient de corrélation de Pearson entre `Rating` et chacune des 60 variables météo. La heatmap permet de visualiser d'un coup d'œil quels mois et quels indicateurs sont les plus associés à la note. On s'attend à ce que l'été (juillet-août) et l'automne (septembre) ressortent comme les périodes les plus déterminantes, les mois hivernaux devant afficher des corrélations proches de zéro.
+
+##### Q7 — L'ensoleillement estival est-il le meilleur prédicteur de la note, et cet effet varie-t-il entre types de vins ?
+
+**Objectif :** Approfondir le résultat de Q6 sur l'indicateur météo le plus corrélé à la note (l'ensoleillement estival, hypothèse œnologique classique). On cherche ici à savoir si cet effet est universel ou propre à certains types, ce qui révèlerait des exigences climatiques différentes selon les cépages.
+
+**Variables :** `Jul_tsun`, `Aug_tsun`, `Sep_tsun`, `Rating`, `type`
+
+**Graphique :** Scatter plot de `tsun_ete` (variable construite) vs `Rating`, avec `geom_smooth` par type, facetté par `type`
+
+**Approche :** On construit une variable synthétique `tsun_ete` comme moyenne de `Jul_tsun`, `Aug_tsun` et `Sep_tsun`. On trace la relation avec `Rating` séparément pour chaque type via un facettage. Des pentes différentes entre types confirmeraient que les vins blancs et rouges n'ont pas les mêmes besoins en ensoleillement. On notera également les cas atypiques (vins très bien notés malgré peu de soleil) qui suggèrent l'influence d'autres facteurs non capturés.
+
+##### Q8 — Les précipitations estivales nuisent-elles à la note du vin, et cet effet est-il linéaire ?
+
+**Objectif :** Tester une hypothèse œnologique bien établie. Un excès de pluie en été dilue la concentration des arômes et favorise les maladies de la vigne, dégradant la qualité. Cette question est distincte de Q7 car elle porte sur un mécanisme différent (excès d'eau vs. intensité lumineuse) et peut produire un effet *non linéaire* : un peu de pluie est nécessaire, trop est néfaste.
+
+**Variables :** `Jul_prcp`, `Aug_prcp`, `Sep_prcp`, `Rating`, `type`
+
+**Graphique :** Scatter plot avec `geom_smooth` en méthode *loess* (pour capturer une relation non linéaire), facetté par `type`
+
+**Approche :** On construit une variable `prcp_ete` (somme des précipitations de juillet à septembre). On utilise une régression locale (loess) plutôt qu'une droite pour détecter un éventuel seuil : la note pourrait rester stable jusqu'à un certain niveau de pluie puis chuter. On compare ces seuils entre types pour identifier si certains cépages sont plus tolérants à l'humidité que d'autres.
+
+---
+
+#### Axe 5 — Évolution climatique et grands millésimes
+
+##### Q9 — Peut-on observer une hausse des températures de croissance au fil des millésimes dans les données ?
+
+**Objectif :** Vérifier si le réchauffement climatique est visible dans ce dataset à travers l'évolution des températures estivales par région et par année. Cette question porte *uniquement sur les variables météo*, sans impliquer la note; elle valide la cohérence du dataset avec les données climatiques officielles et donne de la crédibilité aux analyses de l'axe 4.
+
+**Variables :** `Year`, `Jul_tavg`, `Aug_tavg`, `Sep_tavg`, `lat`
+
+**Graphique :** Line chart de la température estivale moyenne par année (1990–2020) avec droite de tendance linéaire (`geom_smooth`, méthode *lm*), facetté par grande zone géographique (définie à partir de `lat`)
+
+**Approche :** On agrège les données par année et par zone géographique (nord/sud d'une latitude seuil de 45°N, séparant approximativement l'Europe du Nord de l'Europe méditerranéenne). On trace la tendance linéaire sur 30 ans et on vérifie si la pente est positive. Si le dataset est cohérent avec les données climatiques réelles, on devrait observer une hausse progressive des températures, ce qui validera les variables météo comme indicateurs fiables.
+
+##### Q10 — Les années climatiquement exceptionnelles correspondent-elles à des millésimes exceptionnels dans les notes ?
+
+**Objectif :** Relier les analyses climatiques (axe 4) et temporelles (axe 3) en vérifiant si les années reconnues comme extrêmes (ex. canicule 2003, été frais 2013) produisent bien des anomalies de note dans le dataset. C'est un test de *validité externe* : si le lien climat↔note est réel, les grands millésimes viticoles historiques doivent être visibles.
+
+**Variables :** `Year`, `Rating`, `Jul_tavg`, `Aug_tavg`, `Jul_tsun`, `Country`, `type`
+
+**Graphique :** Bar chart des notes moyennes par millésime (2000–2019) pour les vins européens, avec annotation des années climatiquement remarquables (`geom_label`), superposé à une courbe de température estivale sur un axe secondaire
+
+**Approche :** On calcule la note moyenne par millésime pour les vins d'Europe. On superpose la courbe de température estivale moyenne. On annote manuellement les années connues comme climatiquement exceptionnelles (2003, 2010, 2015). Une concordance entre pics de chaleur/ensoleillement et pics de note validerait l'hypothèse centrale du projet. Les discordances seront tout aussi commentées pour nuancer les conclusions.
+
+---
+
+#### Axe 6 — Géographie et profil climatique structurel des régions
+
+##### Q11 — La latitude d'une région viticole influence-t-elle la qualité structurelle de ses vins, indépendamment des variations annuelles ?
+
+**Objectif :** Explorer si la position géographique d'une région (qui détermine *structurellement* son ensoleillement et ses températures moyennes) est associée à la qualité moyenne des vins produits. Cet axe est fondamentalement distinct des précédents : au lieu d'analyser l'effet d'une *année particulière*, on cherche un effet *permanent* lié à la géographie; indépendant du millésime.
+
+**Variables :** `lat`, `lng`, `Rating`, `Country`, `type`
+
+**Graphique :** Carte géographique (`ggplot2` + `geom_point`) où chaque région est positionnée par `lat`/`lng`, colorée par note moyenne et dimensionnée par nombre de vins ; complétée d'un scatter plot `lat` vs `Rating` avec droite de régression
+
+**Approche :** On agrège les données par région pour obtenir la note moyenne et le nombre de vins. On projette chaque région sur une carte du monde pour révéler des patterns spatiaux visuels. Le scatter plot complémentaire `lat` vs `Rating` quantifie la tendance : les régions méditerranéennes (basse latitude, fort ensoleillement structurel) sont-elles systématiquement mieux notées que les régions septentrionales ? On contrôle par `type` pour isoler l'effet de la latitude de celui du type de vin produit dans chaque zone.
+
+---
+
+#### Points de vigilance
+
+- La **note est subjective** et agrégée sur des périodes différentes ; un vin de 1990 noté aujourd'hui souffre d'un biais de sélection (seules les bonnes bouteilles survivent et sont encore notées)
+- La **météo est géolocalisée à l'échelle de la région** et non de la parcelle : des micro-climats peuvent exister au sein d'une même région sans être capturés
+- La **forte asymétrie par type** (8 658 rouges vs 279 effervescents) limitera la comparabilité directe entre catégories sans rééchantillonnage ou pondération
+- Certaines variables météo sont **colinéaires** (`tmin`, `tmax`, `tavg` sont par définition liées), ce qui sera pris en compte pour éviter les interprétations redondantes dans les analyses multivariées
+- Le dataset ne contient **aucune information sur les pratiques viticoles** (agriculture biologique, irrigation, rendement), ce qui laisse une part de variance inexpliquée par le seul climat

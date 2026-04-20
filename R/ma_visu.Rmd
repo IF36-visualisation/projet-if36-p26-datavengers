@@ -1,0 +1,99 @@
+---
+title: "Analyse des Accidents en France"
+output: html_document
+---
+
+# Où se produisent le plus d’accidents ?
+
+Dans cette analyse, on cherche à comprendre où se concentrent les accidents en France.
+
+## Configuration et Librairies
+
+```{r setup, message=FALSE, warning=FALSE}
+library(sf)
+library(dplyr)
+library(readr)
+library(tmap)
+library(here)
+
+# Mode statique pour le rendu HTML
+tmap_mode("view")
+```
+
+```{r}
+# Chargement du CSV (doit être dans un dossier /data/)
+df <- read.csv2(here("data", "accidents_2020_2024_PROPRE.csv"))
+
+# Nettoyage des codes départements (gestion du 0 initial et de la Corse)
+df$dep <- sprintf("%02s", as.character(df$dep))
+
+# Agrégation par département
+acc_dep <- df %>%
+  group_by(dep) %>%
+  summarise(nb_accidents = n())
+```
+
+```{r}
+# 1. Chargement des données
+df <- read.csv2(here("data", "accidents_2020_2024_PROPRE.csv"))
+dep_map <- st_read(here("Departements.shp"))
+
+# 2. Nettoyage et filtrage France Métropolitaine (on enlève les DOM-TOM pour la visibilité)
+# On s'assure que les codes sont sur 2 caractères
+df$dep <- sprintf("%02s", as.character(df$dep))
+dep_map$DDEP_C_COD <- sprintf("%02s", as.character(dep_map$DDEP_C_COD))
+
+# Filtrage : On ne garde que la métropole (codes < 97)
+dep_map_metro <- dep_map %>% 
+  filter(as.character(DDEP_C_COD) < "97")
+
+df_metro <- df %>% 
+  filter(as.character(dep) < "97")
+
+# 3. Agrégation pour la couleur des départements
+acc_dep <- df_metro %>%
+  group_by(dep) %>%
+  summarise(nb_accidents = n())
+
+# 4. Jointure
+dep_map_final <- dep_map_metro %>%
+  left_join(acc_dep, by = c("DDEP_C_COD" = "dep")) %>%
+  mutate(nb_accidents = ifelse(is.na(nb_accidents), 0, nb_accidents))
+
+# 5. Conversion des accidents en points (SF)
+# On vérifie qu'il n'y a pas de coordonnées manquantes pour la conversion
+df_sf <- df_metro %>%
+  filter(!is.na(long) & !is.na(lat)) %>%
+  st_as_sf(coords = c("long", "lat"), crs = 4326)
+```
+
+```{r map_interactive_finale}
+# 1. Échantillon léger pour la fluidité
+df_sf_light <- df_sf %>% sample_frac(0.1)
+
+# 2. Carte avec la syntaxe tmap v4
+tm_shape(dep_map_final) +
+  tm_polygons(
+    fill = "nb_accidents", # On utilise 'fill' au lieu de citer juste la colonne
+    fill.scale = tm_scale_intervals(palette = "brewer.yl_or_rd"), # Nouvelle façon de gérer les couleurs
+    fill.legend = tm_legend(title = "Total accidents"),
+    fill_alpha = 0.5, # 'alpha' devient 'fill_alpha'
+    id = "DDEP_L_LIB",
+    popup.vars = c(
+      "Code" = "DDEP_C_COD", 
+      "Région" = "DREG_L_LIB", 
+      "Total" = "nb_accidents"
+    )
+  ) +
+tm_shape(df_sf_light) +
+  tm_dots(
+    fill = "red", 
+    size = 0.01, 
+    fill_alpha = 0.3, # 'alpha' devient 'fill_alpha'
+    id = "com"
+  ) +
+  tm_text("DDEP_C_COD", size = 0.6) + 
+  tm_view(set_zoom_limits = c(5, 12)) # 'set.zoom.limits' devient 'set_zoom_limits'
+```
+
+

@@ -19,7 +19,7 @@ source("../R/clean_data.R")
 ### Question Max
 #### **Les accidents en agglomération sont-ils différents de ceux hors agglomération ?** (en terme de gravité et volume)
 
-Pour répondre à cette question j'ai décidé de faire un barplot (`geom_bar`) une barre pour les accidents en agglomération et une aute pour ceux hors agglomération. De plus, avec la fonction `possiton = stack` on peut observer la gravité de l'accident sur les passagers/conducteur.
+Pour répondre à cette question j'ai décidé de faire un barplot (`geom_bar`) une barre pour les accidents en agglomération et une autre pour ceux hors agglomération. De plus, avec la fonction `positon = stack` on peut observer la gravité de l'accident sur les passagers/conducteurs.
 
 ```{r}
 library(tibble)
@@ -65,7 +65,10 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
   
 
 ```
-De ce premier graphique, on peut observer une nette différence sur la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents on tendances à être plus grave hors agglomération. Pour observer ce phénomène de plus près, voici un second graphiques similaire au premier mais en étudiant seulement les accidents graves (bléssé hospitalisé et tué).
+
+
+De ce premier graphique, on peut observer une nette différence quant à la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents ont tendances à être plus grave hors agglomération. Pour observer ce phénomène de plus près, voici un second graphique similaire au premier mais en étudiant seulement les accidents graves (blessés hospitalisés et tués).
+
 ```{r}
 # Deuxième df en prennant cette fois-ci uniquement les bléssés et tués
 df_plot <- df %>%
@@ -99,4 +102,6 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
   theme_minimal()
   
 ```
-Dans ce second graphique, le resultat est claire : Les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de bléssé hospitalisé est aussi supérieur (environ 4000 bléssés hospitalisé en plus soit 8,21%)
+
+
+Dans ce second graphique, le resultat est clair : Les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de blessés hospitalisés est aussi supérieur (environ 4000 bléssés hospitalisé en plus soit 8,21%)

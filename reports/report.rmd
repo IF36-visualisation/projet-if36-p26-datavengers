@@ -432,3 +432,43 @@ ggplot(profil_usagers, aes(x = meteo, y = part, fill = gravite_usager)) +
 ```
 
 Ce graphique complete l'analyse precedente en s'interessant non plus aux accidents, mais a la gravite des usagers impliques. On observe que sous vent fort / tempete, brouillard / fumee et temps eblouissant, la part d'usagers tues ou hospitalises est plus elevee, ce qui confirme une gravite plus importante dans ces conditions. A l'inverse, sous pluie legere, la structure est moins severe, avec une plus grande part d'usagers indemnes ou legerement blesses. Il faut toutefois rester prudent pour les categories les moins frequentes, comme « Autre » ou le vent fort / la tempete, car leurs effectifs sont plus faibles.
+
+
+### Question Paul-Louis
+#### Les motos ont-elles un taux de gravité plus élevé ?
+
+```{r}
+df_plot <- df %>%
+  #On filtre pour ne garder que Voitures (7) et Motos/Scooters
+  filter(catv %in% c(7, 30, 31, 32, 33, 34)) %>%
+  
+  #On transforme les chiffres en mots explicites
+  mutate(
+    Type_Vehicule = ifelse(catv == 7, "Voiture", "Moto"),
+    Gravite_Label = case_when(
+      grav == 1 ~ "Indemne",
+      grav == 2 ~ "Tué",
+      grav == 3 ~ "Blessé Hosp.",
+      grav == 4 ~ "Blessé Léger"
+    ),
+  
+    Gravite_Label = factor(Gravite_Label, 
+                           levels = c("Indemne", "Blessé Léger", "Blessé Hosp.", "Tué"))
+  )
+
+library(scales)
+
+ggplot(df_plot, aes(x = Type_Vehicule, fill = Gravite_Label)) +
+  geom_bar(position = "fill") + 
+  scale_y_continuous(labels = percent) + 
+  scale_fill_brewer(palette = "Reds") + 
+  labs(title = "Répartition de la gravité par type de véhicule",
+       subtitle = "Comparaison en pourcentage (Proportions relatives)",
+       x = "Catégorie de véhicule",
+       y = "Proportion des accidents",
+       fill = "Gravité") +
+  theme_minimal()
+```
+
+Le graphique montre très clairement que les accidents de moto sont proportionnellement beaucoup plus graves que les accidents de voiture. La probabilité de s'en sortir indemne est drastiquement plus faible en deux-roues.
+

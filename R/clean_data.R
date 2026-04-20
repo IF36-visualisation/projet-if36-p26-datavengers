@@ -1,0 +1,57 @@
+library(readr)
+library(tidyr)
+library(dplyr)
+
+
+clean_dataset <- function(input_zip, output_path) {
+
+
+dataset <- read_csv2(unz(input_zip, "accidents_2020_2024.csv"))
+
+# Certaines lignes présentent des problèmes. Le plus simple est de les supprimer.
+
+#On récupère les numéros de lignes qui ont des soucis
+lignes_a_virer <- problems(dataset)$row
+
+#On les supprime du dataset (le signe "-" devant l'index signifie "supprimer")
+if(length(lignes_a_virer) > 0) {
+  dataset_clean <- dataset[-lignes_a_virer, ]
+  message(paste(length(lignes_a_virer), "lignes ont été supprimées."))
+} else {
+  dataset_clean <- dataset
+  message("Aucune ligne problématique trouvée.")
+}
+
+
+#On supprime ensuite toutes les lignes qui possèdent des NaN.
+dataset_clean <- dataset_clean %>%
+  select(-id_vehicule, 
+       -num_veh, 
+       -num_veh_veh, 
+       -id_usager, 
+       -annee_dataset, 
+       -adr,
+       -v1,
+       -v2,
+       -pr,
+       -pr1,
+       -lartpc,
+       -larrout,
+       -vosp,
+       -secu2,
+       -secu3,
+       -occutc,
+       -etatp,
+       -voie)
+
+dataset_clean <- dataset_clean %>%
+  drop_na()
+
+# Exporter le dataset nettoyé
+write_csv2(dataset_clean, output_path)
+
+
+# Petit message de confirmation
+message("Le fichier a été exporté avec succès dans le dossier data !")
+}
+

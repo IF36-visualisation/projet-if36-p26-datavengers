@@ -6,11 +6,349 @@ output: html_document
 
 ## Présentation du projet
 
-Dans ce projet, nous nettoyons, explorons et analysons les données d'accidents
-afin de mieux comprendre les tendances récentes, préparer les données pour
-l'analyse et produire un rapport reproductible.
+Dans le cadre de ce projet, nous avons exploité un jeu de données consolidé issu du fichier BAAC (Bulletin d’Analyse des Accidents Corporels). Les données sources proviennent du jeu de données officiel **[Bases de données annuelles des accidents corporels de la circulation routière - 2005 à 2024](https://www.data.gouv.fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2024)**, disponible sur la plateforme data.gouv.fr.
+
+Notre fichier principal `accidents_2020_2024.csv` a été construit pour l’analyse en fusionnant, pour chaque année de 2020 à 2024, les 4 tables BAAC suivantes :
+- `usagers`
+- `vehicules`
+- `lieux`
+- `caracteristiques`
+
+L’objectif est de mener une exploration visuelle des accidents corporels en cherchant des relations entre la gravité, le contexte routier, les profils d’usagers, les véhicules et la temporalité. Nous voulons identifier ce qui semble augmenter le risque d’accident grave, tout en restant critiques sur les limites de la donnée. 
+
+## Structure et nature des données
+
+Le fichier CSV contient **689 434 lignes** et **56 variables**. 
+
+Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_de_données_annuelles.pdf'. Nous avons décider de ne pas toutes les mettre pour ne surcharger les tableaux déjà conséquents.
+
+---
+
+### 1. Identifiants (7 variables)
+| Variable | Note (Libellé) | Type | Description |
+| :--- | :--- | :--- | :--- |
+| **Num_Acc** | Identifiant Accident | VARCHAR | Identifiant unique de l'accident. |
+| **id_vehicule** | Identifiant Véhicule | VARCHAR | Identifiant unique du véhicule. |
+| **num_veh** | Numéro Véhicule | VARCHAR | Identifiant relatif (A01, B01...). |
+| **num_veh_veh** | Numéro Véhicule (Lien) | VARCHAR | Doublon technique de `num_veh`. |
+| **id_usager** | Identifiant Usager | VARCHAR | Identifiant unique de l'usager. |
+| **annee_dataset** | Année Source | INTEGER | Année du fichier d'origine. |
+| **adr** | Adresse | VARCHAR | Adresse postale simplifiée. |
+
+*Note : Ces variables peuvent être surpprimer car inutiles dans l'annalyse*
+
+---
+
+### 2. Variables temporelles (5 variables)
+| Variable | Note (Libellé) | Type | Format / Valeurs |
+| :--- | :--- | :--- | :--- |
+| **an** | Année | INTEGER | Format YYYY. |
+| **mois** | Mois | INTEGER | 1 à 12. |
+| **jour** | Jour | INTEGER | 1 à 31. |
+| **hrmn** | Heure et Minute | VARCHAR | Format HH:MM. |
+| **an_nais** | Année naissance | INTEGER | Année de naissance de l'usager. |
+
+---
+
+### 3. Profil et état de l'usager (12 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **place** | Place occupée | INTEGER | 1:Conducteur, 2:Passager AV, 10:Piéton... |
+| **catu** | Catégorie usager | INTEGER | 1:Conducteur, 2:Passager, 3:Piéton. |
+| **grav** | Gravité | INTEGER | 1:Indemne, 2:Tué, 3:Hospit, 4:Léger. |
+| **sexe** | Sexe | INTEGER | 1:Masculin, 2:Féminin. |
+| **trajet** | Motif déplacement | INTEGER | 1:Travail, 5:Loisirs, 9:Autre. |
+| **secu1** | Équipement 1 | INTEGER | 1:Ceinture, 2:Casque, 9:Non utilisé. |
+| **secu2** | Équipement 2 | INTEGER | Idem secu1. |
+| **secu3** | Équipement 3 | INTEGER | Idem secu1. |
+| **locp** | Localis. piéton | INTEGER | 1:Sur chaussée, 5:Trottoir... |
+| **actp** | Action piéton | INTEGER | 3:Traversant, 6:Statique... |
+| **etatp** | État piéton | INTEGER | 1:Seul, 2:Accompagné, 3:En groupe. |
+| **occutc** | Occupants TC | INTEGER | Nb d'occupants dans les transports en commun. |
+
+---
+
+### 4. Caractéristiques du véhicule (7 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **senc** | Sens circulation | INTEGER | 1:Sens croissant, 2:Sens inverse. |
+| **catv** | Catégorie véhicule | INTEGER | 07:VL, 01:Vélo, 33:Moto... |
+| **obs** | Obstacle fixe | INTEGER | 1:Véh. stationné, 2:Arbre, 10:Mur... |
+| **obsm** | Obstacle mobile | INTEGER | 1:Piéton, 2:Véhicule, 6:Animal. |
+| **choc** | Point de choc | INTEGER | 1:Avant, 2:Arrière, 3:Droit, 4:Gauche. |
+| **manv** | Manœuvre | INTEGER | 1:Sans changement, 15:Tourne G... |
+| **motor** | Motorisation | INTEGER | 1:Hydrocarbures, 3:Élec, 4:Hydrogène. |
+
+*Note : Là aussi des variables sont inutiles et peuvent donc être surpprimées*
+
+---
+
+### 5. Localisation et contexte (10 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **dep** | Département | VARCHAR | Code (ex: 75, 2A). |
+| **com** | Commune | VARCHAR | Code INSEE commune. |
+| **agg** | Agglomération | INTEGER | 1:Hors agglo, 2:En agglo. |
+| **int** | Intersection | INTEGER | 1:Hors int., 6:Giratoire... |
+| **lum** | Lumière | INTEGER | 1:Jour, 5:Nuit avec écl. |
+| **atm** | Météo | INTEGER | 1:Normale, 2:Pluie, 4:Neige... |
+| **col** | Type collision | INTEGER | 1:Frontale, 3:Côté, 6:Autre. |
+| **lat** | Latitude | FLOAT | Coordonnée |
+| **long** | Longitude | FLOAT | Coordonnée |
+| **situ** | Situation | INTEGER | 1:Sur chaussée, 3:Accotement, 4:Trottoir. |
+
+---
+
+### 6. Infrastructure et voie (16 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **catr** | Catégorie route | INTEGER | 1:Autoroute, 3:Départementale... |
+| **voie** | Nom de la voie | VARCHAR | Nom de la rue ou route. |
+| **v1** | Numéro route | VARCHAR | Numéro de la voie. |
+| **v2** | Indice route | VARCHAR | Indice alphanumérique de la voie. |
+| **circ** | Régime circulation | INTEGER | 1:Sens unique, 2:Bidirectionnel. |
+| **nbv** | Nb de voies | INTEGER | Nombre total de voies. |
+| **vosp** | Voie réservée | INTEGER | 1:Piste cyclable, 2:Voie bus. |
+| **prof** | Profil route | INTEGER | 1:Plat, 2:Pente, 3:Sommet. |
+| **pr** | Point de repère | VARCHAR | Numéro du PR. |
+| **pr1** | Distance au PR | VARCHAR | Distance en mètres au PR. |
+| **plan** | Tracé en plan | INTEGER | 1:Rectiligne, 2:Courbe. |
+| **lartpc** | Largeur TPC | FLOAT | Largeur du terre-plein central. |
+| **larrout** | Largeur chaussée | FLOAT | Largeur de la route (hors accotements). |
+| **surf** | État surface | INTEGER | 1:Normale, 2:Mouillée, 7:Verglacée. |
+| **infra** | Aménagement | INTEGER | 1:Souterrain, 3:Échangeur, 5:Pont. |
+| **vma** | Vitesse autorisée | INTEGER | Vitesse max en km/h. |
+---
+*Note : Les valeurs `-1` ou `0` indiquent une donnée non renseignée ou non applicable.*
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-source("../R/clean_data.R")
+library(knitr)
+library(tibble)
+library(tidyr)
+library(scales)
+library(ggplot2)
+library(dplyr)
+
+
+cleaned_dataset <- "../data/accidents_2020_2024_PROPRE.csv"
+input_zip <- "../data/accidents_2020_2024.zip"
+output_path <- "../data/accidents_2020_2024_PROPRE.csv"
+
+if(!file.exists(cleaned_dataset)) {
+  source("../R/clean_data.R")
+  
+  clean_dataset(
+    input_zip=input_zip,
+    output_path=output_path
+  )
+    
+  message("Nettoyage effectué.")
+} else {
+  message("Le fichier propre existe déjà. Pas de nettoyage.")
+}
+
+
+
+df <- read.csv("../data/accidents_2020_2024_PROPRE.csv", sep = ";") 
+
+
+# Paramètres d'affichage et thématique des graphiques
+percent <- scales::label_percent(accuracy = 0.1, decimal.mark = ",")
+number <- scales::label_number(big.mark = " ", decimal.mark = ",")
+
+
+meteo_levels <- c(
+  "Normale",
+  "Pluie legere",
+  "Pluie forte",
+  "Neige / grele",
+  "Brouillard / fumee",
+  "Vent fort / tempete",
+  "Temps eblouissant",
+  "Temps couvert",
+  "Autre"
+)
+
+meteo_palette <- c(
+  "Normale" = "#4C78A8",
+  "Pluie legere" = "#72B7B2",
+  "Pluie forte" = "#1F9E89",
+  "Neige / grele" = "#A0CBE8",
+  "Brouillard / fumee" = "#F58518",
+  "Vent fort / tempete" = "#E45756",
+  "Temps eblouissant" = "#B279A2",
+  "Temps couvert" = "#9D755D",
+  "Autre" = "#BAB0AC"
+)
+
+gravite_palette <- c(
+  "Indemne" = "#54A24B",
+  "Blesse leger" = "#EECA3B",
+  "Hospitalise" = "#E45756",
+  "Tue" = "#B279A2"
+)
+
 ```
+
+```{r}
+print(head(df))
+```
+
+
+### Question Alex
+#### **Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ? **
+
+Pour répondre à cette question, je propose d’utiliser trois graphiques complémentaires :
+
+- un diagramme en barres du nombre d’accidents par météo, pour analyser la fréquence ;
+- un diagramme en barres du taux d’accidents graves, pour évaluer la gravité ;
+- un diagramme en barres empilées à 100 %, pour observer la répartition de la gravité des usagers selon la météo.
+
+
+
+##### Création d’un jeu de données enrichi avec des variables météo et gravité
+```{r include=FALSE}
+# Question: 6 -  Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ?
+
+
+# Reclassification des conditions météorologiques en catégories lisibles
+weather <- df %>%
+  filter(!is.na(atm), atm != -1, !is.na(grav), grav != -1) %>%
+  mutate(
+    meteo = case_when(
+      atm == 1 ~ "Normale",
+      atm == 2 ~ "Pluie legere",
+      atm == 3 ~ "Pluie forte",
+      atm == 4 ~ "Neige / grele",
+      atm == 5 ~ "Brouillard / fumee",
+      atm == 6 ~ "Vent fort / tempete",
+      atm == 7 ~ "Temps eblouissant",
+      atm == 8 ~ "Temps couvert",
+      atm == 9 ~ "Autre",
+      TRUE ~ NA_character_
+    ),
+    gravite_usager = factor(
+      case_when(
+        grav == 1 ~ "Indemne",
+        grav == 4 ~ "Blesse leger",
+        grav == 3 ~ "Hospitalise",
+        grav == 2 ~ "Tue",
+        TRUE ~ "Inconnu"
+      ),
+      levels = c("Indemne", "Blesse leger", "Hospitalise", "Tue") # factor param
+    ),
+    # Indicateur binaire : vrai si l’usager est gravement blessé ou décédé
+    accident_grave_usager = grav %in% c(2, 3)
+  )
+
+# Agrégation au niveau de chaque accident et condition météo
+q6_accident <- weather %>%
+  group_by(Num_Acc, meteo) %>%
+  summarise(
+    # Un accident est considéré grave si au moins un usager est gravement blessé ou décédé
+    accident_grave = any(accident_grave_usager),
+    # Un accident est considéré mortel s’il y a au moins un décès
+    accident_mortel = any(grav == 2),
+    .groups = "drop"
+  )
+
+
+# Résumé des accidents par condition météorologique
+meteo_resume <- q6_accident %>%
+  group_by(meteo) %>%
+  summarise(
+    # Nombre total d’accidents pour chaque condition météo
+    n_accidents = n(),
+    # Part des accidents dans chaque catégorie météo
+    part_accidents = n() / nrow(q6_accident),
+    # Taux d’accidents graves
+    taux_gravite = mean(accident_grave),
+    # Taux d’accidents mortels
+    taux_mortalite = mean(accident_mortel),
+    .groups = "drop"
+  ) %>%
+  mutate(meteo = factor(meteo, levels = meteo_levels)) %>%
+  arrange(meteo)
+
+profil_usagers <- weather %>%
+  count(meteo, gravite_usager) %>%
+  group_by(meteo) %>%
+  mutate(part = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(meteo = factor(meteo, levels = meteo_levels))
+```
+
+
+```{r}
+tableau_resume <- meteo_resume %>%
+  mutate(
+    `Nombre d'accidents` = number(n_accidents),
+    `Part des accidents` = percent(part_accidents),
+    `Taux d'accidents graves` = percent(taux_gravite),
+    `Taux d'accidents mortels` = percent(taux_mortalite)
+  ) %>%
+  select(
+    `Condition meteorologique` = meteo,
+    `Nombre d'accidents`,
+    `Part des accidents`,
+    `Taux d'accidents graves`,
+    `Taux d'accidents mortels`
+  )
+kable(tableau_resume, align = c("l", "r", "r", "r", "r"))
+```
+
+```{r include=True}
+ggplot(meteo_resume, aes(x = reorder(meteo, -n_accidents), y = n_accidents, fill = meteo)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  scale_y_continuous(labels = number) +
+  scale_fill_manual(values = meteo_palette, drop = FALSE) +
+  labs(
+    title = "Nombre d'accidents selon la meteo",
+    subtitle = "France, 2020-2024",
+    x = "Condition meteorologique",
+    y = "Nombre d'accidents"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+```
+
+Ce graphique montre que la majorité des accidents se produit sous une météo normale. Cela ne signifie pas que ces conditions sont les plus dangereuses, mais plutôt qu’elles sont les plus fréquentes au moment des déplacements. À l’inverse, les situations de pluie, de brouillard ou de neige apparaissent moins souvent en nombre absolu, mais elles peuvent être associées à des accidents plus graves. Il faut donc distinguer ici la fréquence des accidents et leur gravité.
+
+
+```{r graph-gravite}
+ggplot(meteo_resume, aes(x = reorder(meteo, taux_gravite), y = taux_gravite, fill = meteo)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values = meteo_palette, drop = FALSE) +
+  coord_flip() +
+  labs(
+    title = "Part des accidents graves selon la meteo",
+    subtitle = "Un accident est dit grave s'il comprend au moins un usager tue ou hospitalise",
+    x = "Condition meteorologique",
+    y = "Taux d'accidents graves"
+  ) 
+```
+
+Ce graphique montre que la part des accidents graves varie sensiblement selon les conditions météorologiques. Les taux les plus élevés apparaissent en cas de vent fort / tempête (56,3 %), de brouillard / fumée (54,8 %) et de temps éblouissant (53,8 %), ce qui suggère qu’une visibilité dégradée ou des conditions atmosphériques plus difficiles augmentent surtout la sévérité des accidents lorsqu’ils se produisent. À l’inverse, la pluie légère présente le taux le plus faible (29,3 %), tandis que la météo normale se situe à un niveau intermédiaire (36,0 %). Il faut toutefois interpréter avec prudence les catégories les moins fréquentes, car leurs effectifs sont plus réduits.
+
+
+```{r}
+ggplot(profil_usagers, aes(x = meteo, y = part, fill = gravite_usager)) +
+  geom_col(position = "fill", width = 0.7) +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values = c(
+    "Indemne" = "#54A24B",
+    "Blesse leger" = "#EECA3B",
+    "Hospitalise" = "#E45756",
+    "Tue" = "#B279A2"
+  )) +
+  labs(
+    title = "Repartition de la gravite des usagers selon la meteo",
+    x = "Condition meteorologique",
+    y = "Part des usagers",
+    fill = "Gravite"
+  ) +
+  coord_flip() 
+```
+
+Ce graphique complete l'analyse precedente en s'interessant non plus aux accidents, mais a la gravite des usagers impliques. On observe que sous vent fort / tempete, brouillard / fumee et temps eblouissant, la part d'usagers tues ou hospitalises est plus elevee, ce qui confirme une gravite plus importante dans ces conditions. A l'inverse, sous pluie legere, la structure est moins severe, avec une plus grande part d'usagers indemnes ou legerement blesses. Il faut toutefois rester prudent pour les categories les moins frequentes, comme « Autre » ou le vent fort / la tempete, car leurs effectifs sont plus faibles.

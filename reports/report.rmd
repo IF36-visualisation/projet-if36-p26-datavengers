@@ -14,3 +14,66 @@ l'analyse et produire un rapport reproductible.
 knitr::opts_chunk$set(echo = TRUE)
 source("../R/clean_data.R")
 ```
+
+### Question Marega 
+#### **Le type de route influence-t-il la gravité des accidents ?**
+
+#### Objectif de l'analyse :
+L'objectif est d'identifier les infrastructures routières où les accidents présentent la plus forte sévérité. En normalisant les données par type de route (proportion), nous cherchons à déterminer si le réseau routier influence intrinsèquement la gravité des chocs, indépendamment du volume de trafic global. Nous attendons de visualiser une disparité dans la répartition des niveaux de gravité, notamment pour repérer les routes affichant les taux de "Tués" ou "Blessés hospitalisés" les plus élevés.
+
+```{r library, message=FALSE}
+library(sf)
+library(dplyr)
+library(ggplot2)
+library(here)
+library(scales)
+```
+
+```{r data_loading}
+# 1. Chargement des données
+df <- read.csv2(here("data", "accidents_2020_2024_PROPRE.csv")) #on utilise here pour toujours être à la racine du projet
+
+df_prop <- df %>%
+  # On filtre pour ne garder que les valeurs numériques valides (1, 2, 3, 4, 5, 6, 7, 9)
+  filter(catr %in% c(1, 2, 3, 4, 5, 6, 7, 9), 
+         grav %in% c(1, 2, 3, 4)) %>%
+  mutate(
+    catr_label = factor(catr, 
+      levels = c(1, 2, 3, 4, 5, 6, 7, 9), 
+      labels = c("Autoroute", "Route nat.", "Départ.", "Communal", "Hors réseau", "Parc", "Autre", "Autre")),
+    grav_label = factor(grav, 
+      levels = c(1, 2, 3, 4), 
+      labels = c("Indemne", "Tué", "Hospit.", "Léger"))
+  ) %>%
+  group_by(catr_label, grav_label) %>%
+  summarise(n = n(), .groups = 'drop') %>%
+  group_by(catr_label) %>%
+  mutate(pct = n / sum(n))
+
+```
+
+```{r}
+
+# 2. Graphique avec facettes
+ggplot(df_prop, aes(x = pct, y = reorder(catr_label, pct))) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  # C'est ici qu'on sépare par gravité
+  facet_wrap(~grav_label, ncol = 2) + 
+  scale_x_continuous(labels = scales::percent) +
+  labs(
+    title = "Gravité des accidents par type de route",
+    subtitle = "Comparaison de la proportion des niveaux de gravité",
+    x = "Proportion",
+    y = "Type de route"
+  ) +
+  theme_minimal()
+```
+#### Analyse des résultats :
+La décomposition par facettes permet d'isoler la gravité des accidents pour chaque type de voie.
+
+Sur les accidents graves : On observe que les routes "Hors réseau" et les "Départementales" présentent des barres proportionnellement plus longues dans la catégorie "Hospit." (hospitalisé) et "Tué" par rapport aux autoroutes. Cela suggère une dangerosité accrue sur ces axes, probablement liée à la configuration des routes ou aux vitesses pratiquées.
+
+Sur les accidents moins graves : À l'inverse, les "Autoroutes" et les voies "Communales" affichent une proportion plus élevée de blessés "Léger" et d'usagers "Indemne".
+
+Conclusion : Ces résultats confirment une corrélation entre l'infrastructure routière et l'issue des accidents. Les réseaux secondaires (départementales et hors réseau) apparaissent comme étant les plus critiques, nécessitant une vigilance particulière comparée aux réseaux structurants comme les autoroutes qui, malgré des vitesses élevées, semblent offrir une protection relative supérieure.
+

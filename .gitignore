@@ -95,6 +95,14 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
+# Unwanted Output R markdown files
+*.html
+*.tex
+*.pdf
+
+#RProject file
+*.Rproj
+
 # R Environment Variables
 .Renviron
 

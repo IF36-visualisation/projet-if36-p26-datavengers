@@ -206,7 +206,7 @@ print(head(df))
 ```
 
 ```{r}
-# On crée d'abord le tableau nettoyé et on cré des catégories
+# On crée d'abord le tableau nettoyé et on crée des catégories
 df_plot <- df %>%
   filter(agg %in% c(1, 2), grav %in% c(1, 2, 3, 4)) %>% # permet de ne pas prendre les NA
   mutate(
@@ -488,16 +488,25 @@ L'objectif est d'identifier les infrastructures routières où les accidents pr�
 
 ```{r data_loading}
 df_prop <- df %>%
-  # On filtre pour ne garder que les valeurs numériques valides (1, 2, 3, 4, 5, 6, 7, 9)
+  # 1. On filtre pour ne garder que les valeurs valides
   filter(catr %in% c(1, 2, 3, 4, 5, 6, 7, 9), 
          grav %in% c(1, 2, 3, 4)) %>%
   mutate(
+    # 2. Mise à jour des labels selon l'image fournie
     catr_label = factor(catr, 
       levels = c(1, 2, 3, 4, 5, 6, 7, 9), 
-      labels = c("Autoroute", "Route nat.", "Départ.", "Communal", "Hors réseau", "Parc", "Autre", "Autre")),
+      labels = c("Autoroute", 
+                 "Route nationale", 
+                 "Route départementale", 
+                 "Voie communale", 
+                 "Hors réseau public", 
+                 "Parc de stationnement", 
+                 "Routes métropole", 
+                 "Autre")),
+    # Labels de gravité conservés
     grav_label = factor(grav, 
       levels = c(1, 2, 3, 4), 
-      labels = c("Indemne", "Tué", "Hospit.", "Léger"))
+      labels = c("Indemne", "Tué", "Blessé hospitalisé", "Blessé léger"))
   ) %>%
   group_by(catr_label, grav_label) %>%
   summarise(n = n(), .groups = 'drop') %>%
@@ -506,19 +515,28 @@ df_prop <- df %>%
 ```
 
 ```{r}
-# 2. Graphique avec facettes
-ggplot(df_prop, aes(x = pct, y = reorder(catr_label, pct))) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  # C'est ici qu'on sépare par gravité
+ggplot(df_prop, aes(x = pct, y = reorder(catr_label, pct), fill = catr_label)) +
+  geom_bar(stat = "identity") +
+  # Ajout des étiquettes de pourcentage
+  geom_text(
+    aes(label = scales::percent(pct, accuracy = 0.1)),
+    hjust = -0.1, 
+    size = 3
+  ) +
+  # Sépare par gravité
   facet_wrap(~grav_label, ncol = 2) + 
-  scale_x_continuous(labels = scales::percent) +
+  scale_x_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.2))) +
+  # Couleurs distinctes pour chaque type de route
+  scale_fill_brewer(palette = "Set3") + 
   labs(
     title = "Gravité des accidents par type de route",
     subtitle = "Comparaison de la proportion des niveaux de gravité",
     x = "Proportion",
-    y = "Type de route"
+    y = "Type de route",
+    fill = "Type de route"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none") # Masquer la légende car les labels y_axis sont explicites
 ```
 
 #### Analyse des résultats :

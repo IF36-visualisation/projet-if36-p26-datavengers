@@ -494,7 +494,7 @@ df_prop <- df %>%
   mutate(
     catr_label = factor(catr, 
       levels = c(1, 2, 3, 4, 5, 6, 7, 9), 
-      labels = c("Autoroute", "Route nat.", "Départ.", "Communal", "Hors réseau", "Parc", "Autre")),
+      labels = c("Autoroute", "Route nat.", "Départ.", "Communal", "Hors réseau", "Parc", "Autre", "Autre")),
     grav_label = factor(grav, 
       levels = c(1, 2, 3, 4), 
       labels = c("Indemne", "Tué", "Hospit.", "Léger"))

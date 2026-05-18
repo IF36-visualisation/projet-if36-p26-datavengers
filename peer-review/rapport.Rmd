@@ -269,7 +269,15 @@ library(ggplot2)
 library(readr)
 library(tidyr)
 videoGameSales <- read_csv("../data/Video_Games_Sales_as_at_22_Dec_2016.csv")
+speedrun1 <- read_csv("../data/speedrun/leaderboards-data_part001.csv")
+speedrun2 <- read_csv("../data/speedrun/leaderboards-data_part002.csv")
+speedrun3 <- read_csv("../data/speedrun/leaderboards-data_part003.csv")
+speedrun4 <- read_csv("../data/speedrun/leaderboards-data_part004.csv")
+speedrun <- bind_rows(speedrun1, speedrun2, speedrun3, speedrun4)
 
+games_data <- read_csv2("../data/speedrun/games-data.csv")
+genres_data <- read_csv2("../data/speedrun/genres-data.csv")
+platforms_data <- read_csv("../data/speedrun/platforms-data.csv")
 
 palette_regions <- c(
   "Amérique du Nord" = "#80b1d3",  
@@ -286,6 +294,15 @@ palette_plateformes <- c(
   "PC" = "#984ea3",
   "Atari" = "#ff7f00",
   "Autre" = "gray70")
+```
+
+
+
+```{r,include=FALSE}
+head(speedrun, 5)
+head(games_data, 5)
+head(genres_data, 5)
+head(platforms_data, 5)
 ```
 
 ## 1. Quelles plateformes ont généré le plus de ventes à l'échelle mondiale ? {#q1-plateformes}
@@ -479,8 +496,7 @@ ggplot(sales_by_genre, aes(x = reorder(Genre, Total_Sales), y = Total_Sales)) +
     title = "Ventes globales par genre de jeu vidéo",
     x = "Genre",
     y = "Ventes globales (millions)"
-  ) +
-  theme_minimal()
+  )
 ```
 
 Le graphique met en évidence le **top 3 des genres les plus vendeurs** :
@@ -501,20 +517,25 @@ Pour répondre à cette question, nous avons utilisé un diagramme en barres. Ce
 
 
 ```{r}
-sales <- c(
-  sum(videoGameSales$NA_Sales, na.rm = TRUE),
-  sum(videoGameSales$EU_Sales, na.rm = TRUE),
-  sum(videoGameSales$JP_Sales, na.rm = TRUE),
-  sum(videoGameSales$Other_Sales, na.rm = TRUE)
+
+sales_df <- data.frame(
+  region = c("Amérique du Nord", "Europe", "Japon", "Autres régions"),
+  ventes = c(
+    sum(videoGameSales$NA_Sales, na.rm = TRUE),
+    sum(videoGameSales$EU_Sales, na.rm = TRUE),
+    sum(videoGameSales$JP_Sales, na.rm = TRUE),
+    sum(videoGameSales$Other_Sales, na.rm = TRUE)
+  )
 )
 
-regions <- c("Amérique du Nord", "Europe", "Japon", "Autres régions")
-
-barplot(sales,
-        names.arg = regions,
-        col = "#4C78A8", 
-        main = "Contribution des régions aux ventes de jeux vidéo",
-        ylab = "Ventes (en millions)")
+ggplot(sales_df, aes(x = reorder(region, -ventes), y = ventes, fill = region)) +
+  geom_col() +
+  scale_fill_manual(values = palette_regions) +
+  labs(
+    title = "Contribution des régions aux ventes de jeux vidéo",
+    x = NULL,
+    y = "Ventes (millions)"
+  )
 ```
 
 L’**Amérique du Nord** domine largement les ventes de jeux vidéo, représentant la plus grande part du marché. Elle est suivie par l’**Europe**, tandis que le Japon et les autres régions contribuent beaucoup moins. Cela montre que l’industrie des jeux vidéos est principalement portée par les marchés occidentaux.

@@ -268,16 +268,17 @@ library(dplyr)
 library(ggplot2)
 library(readr)
 library(tidyr)
+library(lubridate)
 videoGameSales <- read_csv("../data/Video_Games_Sales_as_at_22_Dec_2016.csv")
 speedrun1 <- read_csv("../data/speedrun/leaderboards-data_part001.csv")
 speedrun2 <- read_csv("../data/speedrun/leaderboards-data_part002.csv")
 speedrun3 <- read_csv("../data/speedrun/leaderboards-data_part003.csv")
 speedrun4 <- read_csv("../data/speedrun/leaderboards-data_part004.csv")
-speedrun <- bind_rows(speedrun1, speedrun2, speedrun3, speedrun4)
+speedrun0 <- bind_rows(speedrun1, speedrun2, speedrun3, speedrun4)
 
-games_data <- read_csv2("../data/speedrun/games-data.csv")
-genres_data <- read_csv2("../data/speedrun/genres-data.csv")
-platforms_data <- read_csv("../data/speedrun/platforms-data.csv")
+games_data0 <- read_csv2("../data/speedrun/games-data.csv")
+genres_data0 <- read_csv2("../data/speedrun/genres-data.csv")
+platforms_data0 <- read_csv("../data/speedrun/platforms-data.csv")
 
 palette_regions <- c(
   "Amérique du Nord" = "#80b1d3",  
@@ -298,11 +299,137 @@ palette_plateformes <- c(
 
 
 
-```{r,include=FALSE}
-head(speedrun, 5)
-head(games_data, 5)
-head(genres_data, 5)
-head(platforms_data, 5)
+```{r include=FALSE}
+speedrun <- speedrun0
+games_data <- games_data0
+genres_data <- genres_data0
+platforms_data <- platforms_data0
+
+games_data <- games_data %>%
+  select(gameId, gameName,platforms,genres,releaseDate)
+
+platforms_data <- platforms_data %>% rename(platformName = name)
+genres_data <- genres_data %>% rename(GenreName = name)
+
+speedrun <- left_join(speedrun, games_data, by = "gameId")
+speedrun <- speedrun %>% rename(platformId = platforms, genreId = genres, releaseDateGame = releaseDate)
+speedrun <- left_join(speedrun, platforms_data, by = "platformId")
+speedrun <- left_join(speedrun, genres_data, by = "genreId")
+speedrun <- speedrun %>%
+  mutate(
+    dateJeu  = dmy(releaseDateGame)
+  )
+speedrun <- speedrun %>% select(gameName,GenreName,platformName,dateJeu)
+speedrun <- speedrun %>%
+  mutate(
+    GenreName    = if_else(gameName == "Seterra (Old Version)", "Quiz", GenreName),
+    platformName = if_else(gameName == "Seterra (Old Version)", "Web", platformName)
+  )
+speedrun <- speedrun %>%
+  mutate(
+    GenreName    = if_else(gameName == "Seterra (Geoguessr Version)", "Quiz", GenreName),
+    platformName = if_else(gameName == "Seterra (Geoguessr Version)", "Web", platformName)
+  )
+```
+
+```{r include=FALSE}
+# (rappel : uniformiser les chaînes vides en NA si pas déjà fait)
+speedrun <- speedrun %>%
+  mutate(
+    GenreName    = na_if(GenreName, ""),
+    platformName = na_if(platformName, "")
+  )
+
+jeux_incomplets <- speedrun %>%
+  filter(is.na(GenreName) | is.na(platformName)) %>%
+  add_count(gameName, name = "nb_runs") %>%
+  distinct(gameName, GenreName, platformName, nb_runs) %>%
+  mutate(
+    manque = case_when(
+      is.na(GenreName) & is.na(platformName) ~ "genre + plateforme",
+      is.na(GenreName)                       ~ "genre",
+      is.na(platformName)                    ~ "plateforme"
+    )
+  ) %>%
+  arrange(desc(nb_runs))
+
+jeux_incomplets
+nrow(speedrun)-sum(jeux_incomplets$nb_runs)
+```
+
+```{r echo=FALSE}
+# 1. Compter les runs par jeu
+runs_par_jeu <- speedrun %>%
+  count(gameName, name = "nb_runs")
+
+# 2. Garder les 15 jeux avec le plus de runs
+top_jeux <- runs_par_jeu %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_jeux, aes(x = nb_runs, y = reorder(gameName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des jeux par nombre de runs",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
+```{r echo=FALSE}
+# 1. Compter les runs par genre (en retirant les NA)
+runs_par_genre <- speedrun %>%
+  filter(!is.na(GenreName)) %>%
+  count(GenreName, name = "nb_runs")
+
+# 2. Garder les 15 genres avec le plus de runs
+top_genres <- runs_par_genre %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_genres, aes(x = nb_runs, y = reorder(GenreName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des genres par nombre de runs",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
+```{r echo=FALSE}
+jeux_resume <- speedrun %>%
+  filter(!is.na(dateJeu)) %>%
+  group_by(gameName) %>%
+  summarise(
+    anneeJeu = year(first(dateJeu)),
+    nb_runs  = n()
+  ) %>%
+  ungroup()
+
+ggplot(jeux_resume, aes(x = anneeJeu, weight = nb_runs)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribution des runs selon l'année de sortie du jeu",
+    x = "Année de sortie du jeu",
+    y = "Nombre total de runs"
+  )
+```
+```{r echo=FALSE}
+# 1. Compter les runs par plateforme (en retirant les NA)
+runs_par_plateforme <- speedrun %>%
+  filter(!is.na(platformName)) %>%
+  count(platformName, name = "nb_runs")
+
+# 2. Garder les 15 plateformes les plus populaires
+top_plateformes <- runs_par_plateforme %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_plateformes, aes(x = nb_runs, y = reorder(platformName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des plateformes les plus populaires chez les speedrunners",
+    x = "Nombre de runs",
+    y = NULL
+  )
 ```
 
 ## 1. Quelles plateformes ont généré le plus de ventes à l'échelle mondiale ? {#q1-plateformes}

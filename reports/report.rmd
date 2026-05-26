@@ -488,64 +488,159 @@ L'objectif est d'identifier les infrastructures routières où les accidents pr�
 
 ```{r data_loading}
 df_prop <- df %>%
-  # 1. On filtre pour ne garder que les valeurs valides
+  # Filtrage des valeurs valides uniquement
   filter(catr %in% c(1, 2, 3, 4, 5, 6, 7, 9), 
          grav %in% c(1, 2, 3, 4)) %>%
   mutate(
-    # 2. Mise à jour des labels selon l'image fournie
     catr_label = factor(catr, 
       levels = c(1, 2, 3, 4, 5, 6, 7, 9), 
-      labels = c("Autoroute", 
-                 "Route nationale", 
-                 "Route départementale", 
-                 "Voie communale", 
-                 "Hors réseau public", 
-                 "Parc de stationnement", 
-                 "Routes métropole", 
-                 "Autre")),
-    # Labels de gravité conservés
+      labels = c("Autoroute", "Route nationale", "Route départementale", 
+                 "Voie communale", "Hors réseau public", "Parc de stationnement", 
+                 "Routes métropole", "Autre")),
+    
     grav_label = factor(grav, 
-      levels = c(1, 2, 3, 4), 
-      labels = c("Indemne", "Tué", "Blessé hospitalisé", "Blessé léger"))
+      levels = c(1, 4, 3, 2), 
+      labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
   ) %>%
   group_by(catr_label, grav_label) %>%
   summarise(n = n(), .groups = 'drop') %>%
   group_by(catr_label) %>%
   mutate(pct = n / sum(n))
+
+df_prop <- df_prop %>%
+  group_by(catr_label) %>%
+  mutate(dangerosite = sum(pct[grav_label %in% c("Tué", "Blessé hospitalisé")])) %>%
+  ungroup() %>%
+  mutate(catr_label = reorder(catr_label, dangerosite))
 ```
 
 ```{r}
-ggplot(df_prop, aes(x = pct, y = reorder(catr_label, pct), fill = catr_label)) +
-  geom_bar(stat = "identity") +
-  # Ajout des étiquettes de pourcentage
-  geom_text(
-    aes(label = scales::percent(pct, accuracy = 0.1)),
-    hjust = -0.1, 
-    size = 3
+ggplot(df_prop, aes(x = pct, y = catr_label, fill = grav_label)) +
+  # Barres cumulées à 100%
+  geom_col(position = "stack", width = 0.7) +
+  
+  # Formatage propre de l'axe X en pourcentages stricts
+  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0)) +
+  
+  # Palette manuelle sémantique : du neutre (Gris) à l'alerte maximale (Rouge)
+  scale_fill_manual(
+    values = c(
+      "Indemne" = "#cbd5e1",            # Gris ardoise clair
+      "Blessé léger" = "#fef08a",       # Jaune doux
+      "Blessé hospitalisé" = "#f97316", # Orange vif
+      "Tué" = "#b91c1c"                 # Rouge brique foncé
+    ),
+    # Permet d'afficher "Tué" en premier dans la légende pour attirer l'attention
+    breaks = c("Tué", "Blessé hospitalisé", "Blessé léger", "Indemne")
   ) +
-  # Sépare par gravité
-  facet_wrap(~grav_label, ncol = 2) + 
-  scale_x_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.2))) +
-  # Couleurs distinctes pour chaque type de route
-  scale_fill_brewer(palette = "Set3") + 
+  
+  # Titres et labels professionnels
   labs(
-    title = "Gravité des accidents par type de route",
-    subtitle = "Comparaison de la proportion des niveaux de gravité",
-    x = "Proportion",
-    y = "Type de route",
-    fill = "Type de route"
+    title = "Profil de sévérité des accidents par type de route",
+    subtitle = "Infrastructures classées par ordre croissant de dangerosité (Tués + Hospitalisés)",
+     x = "Proportion au sein de la catégorie de route (Total = 100%)",
+    y = "Type d'infrastructure routière",
+    fill = "Niveau de gravité"
   ) +
-  theme_minimal() +
-  theme(legend.position = "none") # Masquer la légende car les labels y_axis sont explicites
+  
+  # Thème moderne, propre et épuré
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    legend.position = "top",
+    legend.title = element_text(face = "bold", size = 9.5),
+    panel.grid.major.y = element_blank(), # Supprime la grille horizontale devenue inutile
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(color = "#334155", size = 9.5)
+  )
 ```
 
 #### Analyse des résultats :
-La décomposition par facettes permet d'isoler la gravité des accidents pour chaque type de voie.
+Avec ce nouveau graphique en barres empilées à 100%, c'est beaucoup plus facile de comparer la gravité des accidents selon le type de route. En plus, comme les routes sont triées automatiquement de la plus dangereuse à la moins dangereuse (en cumulant les pourcentages de "Tué" et "Blessé hospitalisé"), la lecture est super directe.
 
-Sur les accidents graves : On observe que les routes "Hors réseau" et les "Départementales" présentent des barres proportionnellement plus longues dans la catégorie "Hospit." (hospitalisé) et "Tué" par rapport aux autoroutes. Cela suggère une dangerosité accrue sur ces axes, probablement liée à la configuration des routes ou aux vitesses pratiquées.
+Les routes les plus dangereuses (en haut du graphique) : On remarque tout de suite que le "Hors réseau public" et les "Routes départementales" arrivent en tête. Leurs barres ont les segments rouges (Tué) et oranges (Blessé hospitalisé) les plus larges. Ça montre que quand un accident a lieu sur le réseau secondaire, il est souvent plus grave. C'est sûrement lié aux vitesses plus élevées, au fait qu'il n'y a pas toujours de séparation entre les voies (ce qui augmente le risque de choc frontal) ou à des routes moins bien aménagées.
 
-Sur les accidents moins graves : À l'inverse, les "Autoroutes" et les voies "Communales" affichent une proportion plus élevée de blessés "Léger" et d'usagers "Indemne".
+Les routes les moins dangereuses (en bas du graphique) : À l'inverse, les "Voies communales" et les "Autoroutes" se trouvent tout en bas avec les profils les plus rassurants, surtout remplis de jaune (Blessé léger) et de gris (Indemne).
 
-Conclusion : Ces résultats confirment une corrélation entre l'infrastructure routière et l'issue des accidents. Les réseaux secondaires (départementales et hors réseau) apparaissent comme étant les plus critiques, nécessitant une vigilance particulière comparée aux réseaux structurants comme les autoroutes qui, malgré des vitesses élevées, semblent offrir une protection relative supérieure.
+Pour les voies communales, c'est logique : la vitesse est limitée en ville (30 ou 50 km/h), donc les chocs sont moins violents.
+
+Pour les autoroutes, c'est le résultat le plus intéressant de notre analyse. Même si on y roule très vite, le fait qu'il n'y ait pas d'intersections et qu'il y ait des glissières de sécurité fait que les accidents y sont proportionnellement beaucoup moins graves qu'ailleurs.
+
+
+#### **Où se produisent le plus d’accidents (région, département, ville) ?**
+
+Pour répondre à cette question, nous avons décidé de réaliser un choroplète avec la librairie tmap qui est plus adapté que ggplot2 et permet une visualisation interractive. De plus avec ('tm_dots'), nous pourrons voir la distribution des points représentant les accidents dans toute la France.
+
+```{r setup, message=FALSE}
+library(sf)
+library(dplyr)
+library(tmap)
+library(here)
+
+# Pour l'interactif et les erreurs de calcul
+tmap_mode("plot") #remplacer le view par plot si on veut retirer l'interaction
+sf_use_s2(FALSE)
+```
+
+```{r data_loading}
+# 1. Chargement des données
+df <- read.csv2(here("data", "accidents_2020_2024_PROPRE.csv")) #on utilise here pour toujours être à la racine du projet
+dep_map <- st_read(here("Departements.shp"), quiet = TRUE)
+
+# 2. Préparation des codes (Format "01", "02"...)
+df$dep <- sprintf("%02d", as.numeric(df$dep))
+dep_map$DDEP_C_COD <- as.character(dep_map$DDEP_C_COD)
+
+# 3. Agrégation et Jointure (Création de dep_map2)
+acc_dep <- df %>%
+  group_by(dep) %>%
+  summarise(nb_accidents = n())
+
+dep_map2 <- dep_map %>%
+  left_join(acc_dep, by = c("DDEP_C_COD" = "dep"))
+
+```
+
+```{r filtering}
+# Filtrage de la carte
+dep_map_metro <- dep_map2 %>% 
+  filter(as.numeric(DDEP_C_COD) < 96) %>%
+  st_make_valid()
+
+# Filtrage des points + Échantillonnage pour réduire la vitesse d'exécution
+df_sf_metro <- df %>%
+  filter(as.numeric(dep) < 96) %>% #isoler la France métropolitaine 
+  slice_sample(n = 10000) %>% #réduire le nb d'échantillon
+  st_as_sf(coords = c("long", "lat"), crs = 4326) #transformation en objet géographique. crs=4326 --> code standard pour le système de coordonnées utilisé par les gps
+```
+
+```{r final_map, fig.width=10, fig.height=8}
+tm_shape(dep_map_metro) +
+  tm_polygons(
+    "nb_accidents",
+    palette = "YlOrRd", 
+    alpha = 0.5,
+    title = "Densité accidents",
+    id = "DDEP_C_COD"
+  ) +
+tm_shape(df_sf_metro) +
+  tm_dots(
+    col = "red", 
+    size = 0.05,        
+    alpha = 0.6,
+    clustering = FALSE,
+    interactive = FALSE,
+    shape = 21,         # Un point plein est plus stable au zoom
+    legend.show = FALSE
+  ) +
+tm_view(
+  basemaps = "CartoDB.Positron",
+  view.legend.position = c("right", "bottom"),
+  # On retire les limites de zoom strictes pour être libre
+  set.view = c(2.21, 46.22, 6) 
+)
+```
+
 
 

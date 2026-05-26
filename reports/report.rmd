@@ -2,8 +2,8 @@
 title: "Projet IF36"
 subtitle: Analyse des accidents de la route en France
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ## Présentation du projet

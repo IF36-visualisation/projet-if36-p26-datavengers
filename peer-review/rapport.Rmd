@@ -268,6 +268,7 @@ library(dplyr)
 library(ggplot2)
 library(readr)
 library(tidyr)
+library(ggrepel)
 library(lubridate)
 library(stringr)
 library(stringi)
@@ -856,8 +857,8 @@ ggplot(top_plateformes, aes(x = nb_runs, y = reorder(platformName, nb_runs))) +
 
 
 
-
-# Couplage 
+\newpage
+# Couplage des données 
 
 ```{r}
 clean_name <- function(x) {
@@ -917,6 +918,413 @@ merged_games <- sales_games %>%
 ```
 
 
+## 1. Existe-t-il un lien entre succès commercial en Europe et activité speedrun ? {#q1-couplage}
+
+Après avoir étudié les grandes tendances du marché du jeu vidéo (plateformes dominantes, genres populaires et différences régionales), une question essentielle se pose désormais pour notre studio *La Vague* :
+
+> Le succès commercial d’un jeu en Europe garantit-il son succès auprès de la communauté speedrun ?
+
+Pour notre jeune studio, cette question est particulièrement importante. Notre objectif n’est pas seulement de créer un jeu qui se vend bien, mais aussi un jeu capable de fédérer une communauté active et durable autour du speedrun. Or, certains blockbusters extrêmement populaires semblent finalement peu appréciés par les speedrunners, tandis que d’autres jeux plus modestes deviennent de véritables références grâce à leur gameplay ou à leurs mécaniques.
+
+Nous formulons donc l’hypothèse suivante :
+
+> Les jeux réalisant les meilleures ventes en Europe devraient globalement générer davantage de speedruns grâce à leur forte visibilité et à leur importante base de joueurs. Cependant, certains jeux très vendus pourraient malgré tout attirer peu de speedrunners à cause d’un game design peu adapté au speedrun.
+
+Pour répondre à cette question, nous avons croisé les données commerciales avec les données issues de *Speedrun.com*. Nous avons ensuite utilisé un **nuage de points** (*scatter plot*), particulièrement adapté pour étudier la relation entre deux variables quantitatives :
+
+- les ventes européennes (`EU_Sales`) ;
+- le nombre de runs speedrun (`nb_runs`).
+
+Chaque point représente un jeu présent dans les deux datasets. Une **échelle logarithmique** a été utilisée afin d’améliorer la lisibilité du graphique et de mieux visualiser les écarts entre les jeux les moins et les plus populaires.
 
 
+```{r, fig.width=10, fig.height=6, warning=FALSE, message=FALSE}
+# Pour éviter les jeux avec 0 ventes ou 0 runs
+merged_games_log <- merged_games %>%
+  filter(
+    EU_Sales > 0,
+    nb_runs > 0
+  )
 
+# Jeux très vendus mais peu speedrunnés
+top_sales_low_runs <- merged_games_log %>%
+  filter(
+    EU_Sales > 10,
+    nb_runs < 50
+  )
+
+# Jeux peu vendus mais très speedrunnés
+low_sales_top_runs <- merged_games_log %>%
+  filter(
+    EU_Sales < 5,
+    nb_runs > 500
+  )
+
+ggplot(merged_games_log,
+       aes(x = EU_Sales, y = nb_runs)) +
+  
+  # Tous les jeux
+  geom_point(
+    alpha = 0.15,
+    color = "gray70",
+    size = 1.5
+  ) +
+  
+  # Jeux très vendus mais peu speedrunnés
+  geom_point(
+    data = top_sales_low_runs,
+    aes(color = "Très vendus mais peu speedrunnés"),
+    size = 3
+  ) +
+  
+  # Jeux peu vendus mais très speedrunnés
+  geom_point(
+    data = low_sales_top_runs,
+    aes(color = "Peu vendus mais très speedrunnés"),
+    size = 3
+  ) +
+  
+  # Droite de tendance
+  geom_smooth(
+    aes(linetype = "Tendance générale"),
+    method = "lm",
+    se = FALSE,
+    color = "steelblue",
+    linewidth = 1.2
+  ) +
+  
+  # Labels rouges
+  geom_text_repel(
+    data = top_sales_low_runs,
+    aes(label = Name),
+    color = "darkred",
+    size = 3.5,
+    max.overlaps = 20
+  ) +
+  
+  # Labels verts
+  geom_text_repel(
+    data = low_sales_top_runs,
+    aes(label = Name),
+    color = "darkgreen",
+    size = 3.5,
+    max.overlaps = 20
+  ) +
+  
+  # Couleurs personnalisées
+  scale_color_manual(
+    name = "",
+    values = c(
+      "Très vendus mais peu speedrunnés" = "darkred",
+      "Peu vendus mais très speedrunnés" = "darkgreen"
+    )
+  ) +
+  
+  # Style de ligne
+  scale_linetype_manual(
+    name = "",
+    values = c(
+      "Tendance générale" = "solid"
+    )
+  ) +
+  
+  # Échelles logarithmiques
+  scale_x_log10() +
+  scale_y_log10() +
+  
+  labs(
+    title = "Lien entre ventes européennes et activité speedrun",
+    subtitle = "Identification des jeux atypiques par rapport à la tendance générale",
+    x = "Ventes européennes (millions, échelle logarithmique)",
+    y = "Nombre de runs speedrun (échelle logarithmique)"
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(face = "bold", size = 20),
+    plot.subtitle = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 11),
+    legend.position = "bottom",
+    legend.text = element_text(size = 11)
+  )
+```
+Le graphique met en évidence **une corrélation positive globale** entre les ventes européennes et l’activité speedrun : les jeux les plus populaires commercialement tendent effectivement à générer davantage de runs speedrun. Notre hypothèse est donc partiellement validée.
+
+Cependant, la dispersion importante des points montre que le succès commercial n’explique qu’une partie de l’activité speedrun. Certains jeux suivent clairement la tendance générale, tandis que d’autres s’en écartent fortement.
+
+Deux profils atypiques apparaissent particulièrement :
+
+- **Des jeux très vendus mais peu speedrunnés** :  
+  des titres extrêmement populaires comme *Wii Sports*, *Wii Sports Resort*, *FIFA 15* ou encore *Nintendogs* génèrent finalement très peu d’activité speedrun malgré leurs excellentes ventes européennes. Ces jeux reposent souvent davantage sur une expérience occasionnelle, multijoueur ou sandbox, moins adaptée à l’optimisation recherchée dans le speedrun.
+
+- **Des jeux relativement peu vendus mais très speedrunnés** :  
+  des jeux comme *Payday 2*, *Diddy Kong Racing*, *Mario Kart 8* ou *Destiny* possèdent une activité speedrun extrêmement élevée comparée à leurs ventes. Leur gameplay technique, leur forte rejouabilité ou la richesse de leurs mécaniques semblent favoriser l’investissement de la communauté speedrun.
+
+---
+
+## 2. Quels genres de jeux attirent le plus la communauté speedrun ? {#q2-couplage}
+
+Après avoir observé que le succès commercial n’explique pas entièrement l’activité speedrun d’un jeu, nous cherchons maintenant à identifier si certains genres semblent naturellement plus adaptés au speedrun que d’autres.
+
+Avant d’analyser les données, nous formulons l’hypothèse suivante :
+
+> Les jeux d’action, de plateforme ou de shooter devraient être les genres les plus représentés dans la communauté speedrun, car ils reposent souvent sur des mécaniques rapides, précises et facilement optimisables. À l’inverse, certains genres plus lents ou narratifs pourraient générer moins d’activité.
+
+Pour répondre à cette question, nous avons regroupé les jeux par genre puis calculé le nombre total de runs speedrun associés à chaque catégorie. Nous utilisons ici un **diagramme en barres horizontales**, particulièrement adapté pour comparer des volumes entre plusieurs catégories distinctes
+
+```{r, fig.width=10, fig.height=6, warning=FALSE, message=FALSE}
+speedrun_by_genre <- merged_games %>%
+  group_by(Genre) %>%
+  summarise(
+    total_runs = sum(nb_runs, na.rm = TRUE),
+    nb_games = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_runs))
+
+ggplot(speedrun_by_genre,
+       aes(x = reorder(Genre, total_runs),
+           y = total_runs)) +
+  
+  geom_col(fill = "steelblue") +
+  
+  coord_flip() +
+  
+  labs(
+    title = "Activité speedrun par genre de jeu",
+    x = "Genre",
+    y = "Nombre total de runs speedrun"
+  ) +
+  
+  theme_minimal() +
+  
+  theme(
+    plot.title = element_text(face = "bold", size = 18),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 11)
+  )
+
+```
+
+Le graphique confirme globalement notre hypothèse : l’activité speedrun semble fortement liée à la nature des mécaniques de jeu.
+
+### Les genres dominants
+
+- **Platform & Action (leaders)** :  
+  les jeux de plateforme dominent largement l’activité speedrun grâce à leurs nombreuses possibilités d’optimisation : techniques avancées, glitches, raccourcis ou encore optimisation parfaite des trajectoires. Les jeux d’action suivent de près, portés par un gameplay dynamique et des stratégies souvent très complexes.
+
+- **Shooter & Racing** :  
+  les jeux de tir profitent également de leur rythme rapide et nerveux. Les jeux de course, quant à eux, sont naturellement adaptés au speedrun puisque leur gameplay repose déjà sur la recherche du meilleur temps et de la trajectoire parfaite.
+
+### Les genres en retrait
+
+- **Simulation, Strategy & Sports** :  
+  ces genres génèrent beaucoup moins de runs speedrun. Généralement centrés sur la réflexion, la gestion ou le réalisme, leurs mécaniques se prêtent moins à l’optimisation extrême et à la recherche du temps absolu.
+
+### Opportunités pour le studio *La Vague*
+
+Cette analyse nous donne plusieurs pistes importantes pour concevoir un jeu capable de fédérer une communauté speedrun active et durable. Notre futur jeu devra notamment intégrer :
+
+- **Vitesse et précision** :  
+  un gameplay dynamique et un rythme soutenu.
+
+- **Facile à apprendre, difficile à maîtriser** :  
+  des mécaniques accessibles mais offrant une forte marge de progression.
+
+- **Liberté d’optimisation** :  
+  laisser suffisamment de liberté aux joueurs pour développer leurs propres stratégies, techniques ou raccourcis.
+
+- **Forte rejouabilité** :  
+  une structure donnant envie de recommencer constamment afin d’améliorer ses performances.
+
+---
+
+## 3. Les jeux les mieux notés attirent-ils davantage les speedrunners ? {#q3-couplage}
+
+Après avoir identifié les genres les plus populaires auprès de la communauté speedrun, nous cherchons maintenant à comprendre si la qualité perçue d’un jeu influence également son activité speedrun.
+
+Nous formulons l’hypothèse suivante :
+
+> Les jeux ayant de bonnes notes critiques ou utilisateurs devraient globalement attirer davantage de speedrunners, car un gameplay apprécié et bien conçu favorise souvent la rejouabilité et l’investissement des joueurs.
+
+Pour répondre à cette question, nous allons comparer :
+- les notes critiques (`Critic_Score`) ;
+- l’activité speedrun (`nb_runs`).
+
+Nous utilisons ici un **nuage de points** (*scatter plot*), particulièrement adapté pour étudier la relation entre deux variables quantitatives. Afin d’améliorer la lisibilité du graphique et de limiter l’influence des jeux possédant très peu d’activité speedrun, nous avons choisi de conserver uniquement les jeux ayant au moins 10 runs enregistrés.
+
+
+```{r, fig.width=10, fig.height=6, warning=FALSE, message=FALSE}
+# Jeux avec score critique valide
+merged_scores_filtered <- merged_games %>%
+  filter(
+    !is.na(Critic_Score),
+    Critic_Score > 0,
+    nb_runs >= 10
+  )
+
+# Jeux très bien notés mais peu speedrunnés
+top_score_low_runs <- merged_scores_filtered %>%
+  filter(
+    Critic_Score > 95,
+    nb_runs < 30
+  )
+
+# Jeux très speedrunnés malgré des scores plus modestes
+low_score_top_runs <- merged_scores_filtered %>%
+  filter(
+    Critic_Score < 80,
+    nb_runs > 300
+  )
+
+ggplot(merged_scores_filtered,
+       aes(x = Critic_Score, y = nb_runs)) +
+
+  # Tous les jeux
+  geom_point(
+    alpha = 0.15,
+    color = "gray0",
+    size = 1.5
+  ) +
+
+  # Jeux très bien notés mais peu speedrunnés
+  geom_point(
+    data = top_score_low_runs,
+    aes(color = "Très bien notés mais peu speedrunnés"),
+    size = 3
+  ) +
+
+  # Jeux très speedrunnés malgré des scores plus modestes
+  geom_point(
+    data = low_score_top_runs,
+    aes(color = "Très speedrunnés malgré des scores modestes"),
+    size = 3
+  ) +
+
+  # Droite de tendance
+  geom_smooth(
+    aes(linetype = "Tendance générale"),
+    method = "lm",
+    se = FALSE,
+    color = "steelblue",
+    linewidth = 1.2
+  ) +
+
+  # Labels rouges
+  geom_text_repel(
+    data = top_score_low_runs,
+    aes(label = Name),
+    color = "darkred",
+    size = 3.5,
+    max.overlaps = 20
+  ) +
+
+  # Labels verts
+  geom_text_repel(
+    data = low_score_top_runs,
+    aes(label = Name),
+    color = "darkgreen",
+    size = 3.5,
+    max.overlaps = 20
+  ) +
+
+  # Couleurs personnalisées
+  scale_color_manual(
+    name = "",
+    values = c(
+      "Très bien notés mais peu speedrunnés" = "darkred",
+      "Très speedrunnés malgré des scores modestes" = "darkgreen"
+    )
+  ) +
+
+  # Ligne de tendance
+  scale_linetype_manual(
+    name = "",
+    values = c(
+      "Tendance générale" = "solid"
+    )
+  ) +
+
+  labs(
+    title = "Lien entre score critique et activité speedrun",
+    subtitle = "Identification des jeux atypiques par rapport à la tendance générale",
+    x = "Score critique Metacritic",
+    y = "Nombre de runs speedrun"
+  ) +
+
+  theme_minimal() +
+
+  theme(
+    plot.title = element_text(face = "bold", size = 20),
+    plot.subtitle = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 11),
+    legend.position = "bottom",
+    legend.text = element_text(size = 11)
+  )
+```
+
+Le graphique met en évidence une **corrélation positive faible** entre les scores critiques et l’activité speedrun. Globalement, les jeux bénéficiant de meilleures notes critiques semblent attirer davantage de speedrunners, ce qui valide partiellement notre hypothèse initiale.
+
+Cependant, la dispersion importante des points montre que cette relation reste limitée et que la qualité critique d’un jeu ne suffit pas à expliquer son succès dans la communauté speedrun.
+
+Le graphique révèle notamment deux profils atypiques particulièrement intéressants :
+
+- **Des jeux très bien notés mais peu speedrunnés** :  
+  des jeux comme *BioShock* ou *Tekken 3*, qui malgré leur excellente réception critique génèrent relativement peu d’activité speedrun.
+
+- **Des jeux extrêmement speedrunnés malgré des scores plus modestes** :  
+  des titres comme *Payday 2*, *Destiny*, *Mirror's Edge* ou *Sonic Adventure 2 Battle*, qui semblent avoir développé une forte communauté grâce à leur gameplay ou à leurs mécaniques spécifiques.
+
+Ces résultats suggèrent donc que la qualité globale d’un jeu joue probablement un rôle dans son attractivité auprès des speedrunners, mais qu’elle ne constitue pas le facteur principal. La profondeur du gameplay, la rejouabilité, les possibilités d’optimisation ou encore l’existence de techniques avancées semblent avoir une influence beaucoup plus importante dans la création d’une communauté speedrun active et durable.
+
+---
+
+## 4. Quels constructeurs possèdent les communautés speedrun les plus actives ? {#q4-couplage}
+@to-do: blabla
+
+```{r, fig.width=10, fig.height=6, warning=FALSE, message=FALSE}
+# Ajouter le constructeur à partir de la plateforme principale du dataset ventes
+merged_constructeurs <- merged_games %>%
+  mutate(
+    Constructeur = case_when(
+      Platform %in% c("PS2", "PS3", "PS", "PS4", "PSP", "PSV") ~ "Sony",
+      Platform %in% c("Wii", "DS", "GBA", "3DS", "GB", "NES", "N64", "SNES", "GC", "WiiU") ~ "Nintendo",
+      Platform %in% c("X360", "XB", "XOne") ~ "Microsoft",
+      Platform %in% c("SAT", "GEN", "DC", "SCD") ~ "Sega",
+      Platform == "PC" ~ "PC",
+      Platform == "2600" ~ "Atari",
+      TRUE ~ "Autre"
+    )
+  )
+
+# Calculer l'activité speedrun par constructeur
+speedrun_by_constructeur <- merged_constructeurs %>%
+  group_by(Constructeur) %>%
+  summarise(
+    total_runs = sum(nb_runs, na.rm = TRUE),
+    nb_games = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(total_runs))
+
+# Graphique
+ggplot(speedrun_by_constructeur,
+       aes(x = reorder(Constructeur, total_runs),
+           y = total_runs,
+           fill = Constructeur)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = palette_plateformes) +
+  labs(
+    title = "Activité speedrun par constructeur",
+    subtitle = "Nombre total de runs speedrun selon le constructeur associé au jeu",
+    x = "Constructeur",
+    y = "Nombre total de runs speedrun",
+    fill = "Constructeur"
+  ) +
+  theme_minimal()
+
+```

@@ -53,4 +53,166 @@ function(input, output, session) {
     ggplotly(p)
   })
   
+  # LOGIQUE ONGLET 2
+  data_filtree_tab2 <- reactive({
+    data_preparee <- df %>%
+      filter(an %in% input$filtre_annee_meteo) %>%
+      filter(atm %in% c(1, 2, 3, 4, 5, 6, 7, 8, 9)) %>%
+      filter(grav %in% c(1, 2, 3, 4)) %>%
+      filter(agg %in% input$filtre_agg_meteo) %>%
+      mutate(
+        Meteo = factor(
+        atm,
+        levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9),
+        labels = c(
+          "Normale",
+          "Pluie légère",
+          "Pluie forte",
+          "Neige / grêle",
+          "Brouillard",
+          "Vent fort / tempête",
+          "Temps éblouissant",
+          "Temps couvert",
+          "Autre"
+          )
+        ),
+        
+        Gravite = factor(
+          grav,
+          levels = c(1, 4, 3, 2),
+          labels = c(
+            "Indemne",
+            "Blessé léger",
+            "Blessé hospitalisé",
+            "Tué"
+          )
+        ),
+        
+        Agglomeration = factor(
+          agg,
+          levels = c(1, 2),
+          labels = c(
+            "Hors agglomération",
+            "En agglomération"
+          )
+        ),
+        
+        # Score pour trouver la gravité maximale par accident
+        gravite_score = case_when(
+          grav == 1 ~ 1, # Indemne
+          grav == 4 ~ 2, # Blessé léger
+          grav == 3 ~ 3, # Blessé hospitalisé
+          grav == 2 ~ 4, # Tué
+          TRUE ~ NA_real_
+        )
+      )
+    if (!input$inclure_meteo_normale) {
+      data_preparee <- data_preparee %>%
+        filter(atm != 1)
+    }
+  
+  data_preparee %>%
+    group_by(an, Num_Acc, Meteo, Agglomeration) %>%
+    summarise(
+      gravite_max_score = max(gravite_score, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Gravite = factor(
+        gravite_max_score,
+        levels = c(1, 2, 3, 4),
+        labels = c(
+          "Indemne",
+          "Blessé léger",
+          "Blessé hospitalisé",
+          "Tué"
+        )
+      )
+    ) %>%
+    group_by(an, Meteo, Gravite, Agglomeration) %>%
+    summarise(
+      nb_accidents = n(),
+      .groups = "drop"
+    ) %>%
+    group_by(an, Meteo) %>%
+    mutate(
+      pourcentage = nb_accidents / sum(nb_accidents) * 100
+    ) %>%
+    ungroup()
+  })
+output$plot2 <- renderPlotly({
+  
+  df_plot <- data_filtree_tab2()
+  
+  if (length(input$filtre_agg_meteo) == 2){
+    title_agg = "toutes zones"
+  } else if (length(input$filtre_agg_meteo) == 1 && input$filtre_agg_meteo == 1){
+    title_agg <- "hors agglomération"
+  } else if(length(input$filtre_agg_meteo) == 1 && input$filtre_agg_meteo == 2){
+    title_agg <- "en agglomération"
+  } else {
+    title_agg <- "aucune zone sélectionnée"
+  }
+  
+  if (input$mode_meteo == "nombre"){
+    y_value <- ~nb_accidents
+    y_title <- "Nombre d'accidents"
+    hover_value <- ~paste(
+      "Année :", an,
+      "<br>Météo :", Meteo,
+      "<br>Gravité :", Gravite,
+      "<br>Nombre d'accidents :", nb_accidents
+    )
+    graph_title <- paste("Impact de la météo sur le nombre d'accidents - ",
+    title_agg)
+  } else {
+    y_value <- ~pourcentage
+    y_title <- "Pourcentage d'accidents (%)"
+    hover_value <- ~paste(
+      "Année :", an,
+      "<br>Météo :", Meteo,
+      "<br>Gravité :", Gravite,
+      "<br>Pourcentage :", round(pourcentage, 1), "%"
+    )
+    graph_title <- paste("Répartition des accidents par météo en pourcentage -",
+    title_agg)
+  }
+  
+  
+  
+  plot_ly(
+    data = df_plot,
+    x = ~Meteo,
+    y = y_value,
+    color = ~Gravite,
+    type = "bar",
+    frame = ~an,
+    text = hover_value,
+    hoverinfo = "text"
+  ) %>%
+    layout(
+      title = graph_title,
+      xaxis = list(title = "Condition météorologique"),
+      yaxis = list(
+        title = y_title,
+        range = if (input$mode_meteo == "pourcentage") c(0, 100) else NULL
+        ),
+      barmode = "stack",
+      legend = list(title = list(text = "Gravité"))
+    ) %>%
+    animation_opts(
+      frame = 1000,
+      transition = 500,
+      redraw = TRUE
+    ) %>%
+    animation_slider(
+      currentvalue = list(prefix = "Année : ")
+    ) %>%
+    animation_button(
+      x = 1,
+      xanchor = "right",
+      y = 0,
+      yanchor = "bottom"
+    )
+})
 }

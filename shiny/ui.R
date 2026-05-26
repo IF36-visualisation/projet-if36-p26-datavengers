@@ -6,7 +6,7 @@ library(dplyr)
 page_navbar(
   title = "Projet DataVengers",
   theme = bs_theme(version = 5, preset = "zephyr"), # zephyr est un thème moderne
-
+  
   # ONGLET 1
   nav_panel(
     title = "Agglomération & Gravité", 
@@ -38,23 +38,50 @@ page_navbar(
   
   # ONGLET 2
   nav_panel(
-    title = "Analyse 2", 
-    icon = icon("chart-bar"),
+    title = "Meteo & Accidents", 
+    icon = icon("cloud-sun-rain"),
     
     layout_sidebar(
       sidebar = sidebar(
-        title = "Contrôles - Visu 2",
-        # Exemple de curseur pour la deuxième visualisation
-        sliderInput(
-          inputId = "seuil_tab2", 
-          label = "Sélectionner le seuil :", 
-          min = 0, max = 100, value = 50
+        title = "Filtres",
+        
+        checkboxGroupInput(
+          inputId = "filtre_annee_meteo",
+          label = "Année(s) :",
+          choices = 2020:2024,
+          selected = 2020:2024
+        ),
+        
+        checkboxInput(
+          inputId = "inclure_meteo_normale",
+          label = "Inclure la météo normale",
+          value = TRUE
+        ),
+        
+        checkboxGroupInput(
+          inputId = "filtre_agg_meteo",
+          label = "Agglomération :",
+          choices = c(
+            "Hors agglomération" = 1,
+            "En agglomération" = 2
+          ),
+          selected = c(1, 2)
+        ), 
+        
+        radioButtons(
+          inputId = "mode_meteo",
+          label = "Mode d'affichage :",
+          choices = c(
+            "Nombre d'accidents" = "nombre",
+            "Pourcentage" = "pourcentage"
+          ),
+          selected = "nombre"
         )
       ),
       card(
         full_screen = TRUE,
-        card_header("Deuxième Visualisation Interactive"),
-        card_body(plotOutput("plot2"))
+        card_header("Impact des conditions météorologiques sur les accidents"),
+        card_body(plotly::plotlyOutput("plot2"))
       )
     )
   ),
@@ -83,7 +110,7 @@ page_navbar(
     )
   ),
   
-
+  
   # ONGLET 4
   nav_panel(
     title = "Analyse 4", 

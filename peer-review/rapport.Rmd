@@ -217,6 +217,7 @@ Les sous-groupes exploitables sont :
 - **Plateforme** (après séparation des listes dans `platforms` et jointure avec *platforms-data.csv*)
 - **Genre** (après séparation des listes dans `genres` et jointure avec *genres-data.csv*)
 
+\newpage
 
 # Annexes
 
@@ -260,7 +261,7 @@ Dans le dataset *Video Game Sales*, la variable `Platform` est codée sous forme
 
 \newpage
 
-# Plan d’analyse
+# Analyse des ventes
 
 ```{r,include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -378,7 +379,7 @@ jeux_incomplets
 nrow(speedrun)-sum(jeux_incomplets$nb_runs)
 ```
 
-## 1. Quelles plateformes ont généré le plus de ventes à l'échelle mondiale ? {#q1-plateformes}
+## 1. Quelles plateformes ont généré le plus de ventes à l'échelle mondiale ?
 
 Pour débuter notre exploration, nous cherchons à identifier quelles plateformes ont généré le plus de ventes de jeux à l’échelle mondiale. Avant de visualiser les données, nous pouvons supposer que le marché est historiquement écrasé par quelques consoles phares de constructeurs majeurs (comme Sony ou Nintendo), mais nous nous demandons si cette domination se concentre sur une ou deux machines, ou si la répartition est plus équilibrée entre les différentes générations de consoles.
 
@@ -425,12 +426,27 @@ Ces résultats répondent clairement à notre question initiale : l'industrie es
 Dans la continuité de l’analyse précédente, nous cherchons ici à comprendre si les plateformes les plus performantes à l’échelle mondiale le sont également au niveau régional. On peut supposer que les préférences des joueurs varient selon les régions, notamment en fonction des habitudes culturelles et de la présence historique des constructeurs. L’objectif est donc d’identifier les plateformes dominantes en Amérique du Nord, en Europe, au Japon et dans les autres régions.
 
 ```{r}
-# Région Amérique du Nord
-
-na_platform_sales <- videoGameSales %>%
+# Agréger les ventes par plateforme
+sales_by_platform <- videoGameSales %>%
   group_by(Platform) %>%
-  summarise(NA_Sales = sum(NA_Sales, na.rm = TRUE)) %>%
-  arrange(desc(NA_Sales)) %>%
+  summarise(
+    `Amérique du Nord` = sum(NA_Sales, na.rm = TRUE),
+    Europe = sum(EU_Sales, na.rm = TRUE),
+    Japon = sum(JP_Sales, na.rm = TRUE),
+    `Autres régions` = sum(Other_Sales, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Passer en format long
+sales_long <- sales_by_platform %>%
+  pivot_longer(
+    cols = -Platform,
+    names_to = "Region",
+    values_to = "Sales"
+  )
+
+# Ajouter la colonne Constructeur
+sales_long <- sales_long %>%
   mutate(Constructeur = case_when(
     Platform %in% c("PS2", "PS3", "PS", "PS4", "PSP", "PSV") ~ "Sony",
     Platform %in% c("Wii", "DS", "GBA", "3DS", "GB", "NES", "N64", "SNES", "GC", "WiiU") ~ "Nintendo",
@@ -439,106 +455,39 @@ na_platform_sales <- videoGameSales %>%
     Platform == "PC" ~ "PC",
     Platform == "2600" ~ "Atari",
     TRUE ~ "Autre"
-  )) %>%
-  ggplot(aes(x = reorder(Platform, -NA_Sales), y = NA_Sales, fill = Constructeur)) +
+  ))
+
+# Garder le top 10 de chaque région
+top10_by_region <- sales_long %>%
+  group_by(Region) %>%
+  arrange(desc(Sales), .by_group = TRUE) %>%
+  slice_head(n = 10) %>%
+  ungroup()
+
+# Identifiant unique pour ordonner dans chaque facette + ordre des régions
+top10_by_region <- top10_by_region %>%
+  mutate(
+    Platform_region = paste(Platform, Region, sep = "____"),
+    Region = factor(
+      Region,
+      levels = c("Amérique du Nord", "Europe", "Japon", "Autres régions")
+    )
+  )
+
+# Graphique
+ggplot(top10_by_region, aes(x = reorder(Platform_region, Sales), y = Sales, fill = Constructeur)) +
   geom_col() +
+  coord_flip() +
+  facet_wrap(~ Region, scales = "free") +
+  scale_x_discrete(labels = function(x) sub("____.*", "", x)) +   # nettoyage des facettes
   scale_fill_manual(values = palette_plateformes) +
   labs(
+    title = "Top 10 des plateformes les plus vendues selon les régions",
     x = "Plateforme",
-    y = "Ventes (millions)",
-    title = "Ventes de jeux vidéo par plateforme en Amérique du Nord",
+    y = "Ventes (en millions)",
     fill = "Constructeur"
   ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-na_platform_sales
-
-
-# Région Europe
-
-eu_region_platform_sales <- videoGameSales %>%
-  group_by(Platform) %>%
-  summarise(EU_Sales = sum(EU_Sales, na.rm = TRUE)) %>%
-  arrange(desc(EU_Sales)) %>%
-  mutate(Constructeur = case_when(
-    Platform %in% c("PS2", "PS3", "PS", "PS4", "PSP", "PSV") ~ "Sony",
-    Platform %in% c("Wii", "DS", "GBA", "3DS", "GB", "NES", "N64", "SNES", "GC", "WiiU") ~ "Nintendo",
-    Platform %in% c("X360", "XB", "XOne") ~ "Microsoft",
-    Platform %in% c("SAT", "GEN", "DC", "SCD") ~ "Sega",
-    Platform == "PC" ~ "PC",
-    Platform == "2600" ~ "Atari",
-    TRUE ~ "Autre"
-  )) %>%
-  ggplot(aes(x = reorder(Platform, -EU_Sales), y = EU_Sales, fill = Constructeur)) +
-  geom_col() +
-  scale_fill_manual(values = palette_plateformes) +
-  labs(
-    x = "Plateforme",
-    y = "Ventes (millions)",
-    title = "Ventes de jeux vidéo par plateforme en Europe",
-    fill = "Constructeur"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-eu_region_platform_sales
-
-
-# Région Japon
-
-jp_region_platform_sales <- videoGameSales %>%
-  group_by(Platform) %>%
-  summarise(JP_Sales = sum(JP_Sales, na.rm = TRUE)) %>%
-  arrange(desc(JP_Sales)) %>%
-  mutate(Constructeur = case_when(
-    Platform %in% c("PS2", "PS3", "PS", "PS4", "PSP", "PSV") ~ "Sony",
-    Platform %in% c("Wii", "DS", "GBA", "3DS", "GB", "NES", "N64", "SNES", "GC", "WiiU") ~ "Nintendo",
-    Platform %in% c("X360", "XB", "XOne") ~ "Microsoft",
-    Platform %in% c("SAT", "GEN", "DC", "SCD") ~ "Sega",
-    Platform == "PC" ~ "PC",
-    Platform == "2600" ~ "Atari",
-    TRUE ~ "Autre"
-  )) %>%
-  ggplot(aes(x = reorder(Platform, -JP_Sales), y = JP_Sales, fill = Constructeur)) +
-  geom_col() +
-  scale_fill_manual(values = palette_plateformes) +
-  labs(
-    x = "Plateforme",
-    y = "Ventes (millions)",
-    title = "Ventes de jeux vidéo par plateforme au Japon",
-    fill = "Constructeur"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-jp_region_platform_sales
-
-
-# Autres régions
-
-others_region_platform_sales <- videoGameSales %>%
-  group_by(Platform) %>%
-  summarise(Other_Sales = sum(Other_Sales, na.rm = TRUE)) %>%
-  arrange(desc(Other_Sales)) %>%
-  mutate(Constructeur = case_when(
-    Platform %in% c("PS2", "PS3", "PS", "PS4", "PSP", "PSV") ~ "Sony",
-    Platform %in% c("Wii", "DS", "GBA", "3DS", "GB", "NES", "N64", "SNES", "GC", "WiiU") ~ "Nintendo",
-    Platform %in% c("X360", "XB", "XOne") ~ "Microsoft",
-    Platform %in% c("SAT", "GEN", "DC", "SCD") ~ "Sega",
-    Platform == "PC" ~ "PC",
-    Platform == "2600" ~ "Atari",
-    TRUE ~ "Autre"
-  )) %>%
-  ggplot(aes(x = reorder(Platform, -Other_Sales), y = Other_Sales, fill = Constructeur)) +
-  geom_col() +
-  scale_fill_manual(values = palette_plateformes) +
-  labs(
-    x = "Plateforme",
-    y = "Ventes (millions)",
-    title = "Ventes de jeux vidéo par plateforme dans les autres régions",
-    fill = "Constructeur"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-others_region_platform_sales
+  theme_minimal()
 ```
 
 Les graphiques mettent en évidence des différences régionales marquées. En Amérique du Nord, la Xbox 360 domine nettement, même si les consoles Sony comme la PlayStation 2 et la PlayStation 3 restent très présentes. En Europe, la domination de Sony est plus claire, avec la PS2 et la PS3 en tête, suivies par la Xbox 360. On note également une présence plus marquée du PC, qui atteint des niveaux de ventes élevés comparés aux autres régions.
@@ -781,6 +730,7 @@ Ainsi, cette analyse confirme que le succès d’un jeu ne dépend pas uniquemen
 \newpage
 
 # Analyse de Speedrun.com
+
 ## 8. Quels sont les jeu avec le plus de runs ?
 
 Après avoir étudié en profondeur les ventes de jeux vidéo à l'échelle mondiale, nous allons nous intéresser au nombre de runs de speedrun que chacun des jeux possède sur le site speedrun.com.
@@ -811,6 +761,8 @@ ggplot(top_jeux, aes(x = nb_runs, y = reorder(gameName, nb_runs))) +
 À la lecture du graphique, nous nous rendons compte que la popularité du jeu ne suffit pas pour en faire un jeu très speedrunné, car beaucoup de jeux qu'on ne considère pas comme des « classiques » du jeu vidéo sont présents dans ce classement, notamment Diddy Kong Racing (un clone de Mario Kart) ou encore PAYDAY 2 (un FPS coopératif).
 Un jeu peu connu peut être speedrunné s'il a les bons atouts, notamment un format adapté (durée d'une run, accessibilité, mécaniques répétables) comme les jeux de course ou de plateforme.
 Cependant, au vu de la grande quantité de jeux connus dans le classement, nous aurions plus de chances de produire un jeu speedrunné s'il est très populaire.Notre objectif est donc de concevoir un jeu populaire avec de bonnes mécaniques de speedrun.
+
+\newpage
 
 ## 9. Quels sont les genres de jeu avec le plus de runs ?
 
@@ -843,11 +795,14 @@ ggplot(top_genres, aes(x = nb_runs, y = reorder(genreName, nb_runs))) +
 En effet, les jeux de plateforme se prêtent bien, comme nous l'avons vu précédemment, aux mécaniques de rejouabilité.
 Si on veut que notre jeu se classe parmi les plus speedrunnés, il peut être intéressant qu'il mélange les styles. Nous pouvons imaginer un platformer sous forme de course.
 
-## 9. L'année de sortie est-elle corrélée au nombre de runs des jeux ?
+\newpage
+
+## 10. L'année de sortie est-elle corrélée au nombre de runs des jeux ?
 
 L'année de sortie pourrait avoir un impact sur le nombre de runs par jeu. Même si cette information ne nous indiquera pas directement quand sortir notre jeu, elle peut révéler quelles époques (et donc quels thèmes de jeu dominants) incitent le plus les joueurs à relancer une partie pour battre des records.
 
 Nous imaginons que les jeux les plus anciens seront les plus speedrunnés, étant donné qu'ils auront eu plus de temps pour se faire connaître.
+
 ```{r echo=FALSE}
 jeux_resume <- speedrun %>%
   filter(!is.na(dateJeu)) %>%
@@ -866,12 +821,15 @@ ggplot(jeux_resume, aes(x = anneeJeu, weight = nb_runs)) +
     y = "Nombre total de runs"
   )
 ```
+
 Étonnamment, nous remarquons un pic du nombre de runs pour les jeux sortis autour de 2014. Cela pourrait s'expliquer par l'essor du streaming sur Twitch durant cette période, qui a donné au speedrun une visibilité nouvelle et incité les joueurs à revenir sur leurs jeux pour battre des records. 
 À cela s'ajoute une évolution dans la conception des jeux eux-mêmes, de plus en plus pensés pour la rejouabilité et le speedrun, avec des mécaniques comme les chronomètres intégrés, les classements en ligne ou les niveaux découpés en segments courts.
 
 Notre jeu devra donc s'inscrire dans un univers récent et être facilement partageable sur les plateformes de streaming.
 
-## 10 Quelles sont les plateformes les plus speedrunnées ?
+\newpage
+
+## 11. Quelles sont les plateformes les plus speedrunnées ?
 La question est cruciale : il nous faut choisir la bonne plateforme pour sortir notre jeu, car un jeu lancé sur une plateforme peu active aura du mal à fédérer une communauté de speedrun.
 Nous imaginons que la plateforme la plus speedrunnée sera le PC, son caractère universel le rendant accessible au plus grand nombre.
 
@@ -909,6 +867,7 @@ Quoi qu'il en soit, notre jeu devra être disponible sur PC pour maximiser ses c
 Il convient toutefois de garder à l'esprit certaines limites de notre analyse. D'une part, les données de plateforme et de genre comportaient chacune environ 65 % de valeurs manquantes (NA) ; nous avons fait l'hypothèse que les 35 % restants étaient représentatifs de l'ensemble, mais cette approximation reste à considérer avec prudence. D'autre part, le dataset Speedrun.com sur-représente probablement les jeux PC du fait de la facilité de soumission, et la corrélation observée entre popularité et nombre de runs ne garantit pas qu'un jeu conçu spécifiquement pour le speedrun rencontrera le succès commercial.
 
 \newpage
+
 # Couplage des données 
 
 ```{r}
@@ -1113,7 +1072,7 @@ Deux profils atypiques apparaissent particulièrement :
 - **Des jeux relativement peu vendus mais très speedrunnés** :  
   des jeux comme *Payday 2*, *Diddy Kong Racing*, *Mario Kart 8* ou *Destiny* possèdent une activité speedrun extrêmement élevée comparée à leurs ventes. Leur gameplay technique, leur forte rejouabilité ou la richesse de leurs mécaniques semblent favoriser l’investissement de la communauté speedrun.
 
----
+\newpage
 
 ## 2. Quels genres de jeux attirent le plus la communauté speedrun ? {#q2-couplage}
 
@@ -1190,8 +1149,8 @@ Cette analyse nous donne plusieurs pistes importantes pour concevoir un jeu capa
 - **Forte rejouabilité** :  
   une structure donnant envie de recommencer constamment afin d’améliorer ses performances.
 
----
 
+\newpage
 ## 3. Les jeux les mieux notés attirent-ils davantage les speedrunners ? {#q3-couplage}
 
 Après avoir identifié les genres les plus populaires auprès de la communauté speedrun, nous cherchons maintenant à comprendre si la qualité perçue d’un jeu influence également son activité speedrun.

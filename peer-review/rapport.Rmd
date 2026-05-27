@@ -6,15 +6,15 @@ output:
   pdf_document:
     latex_engine: xelatex
     toc: true
-    toc_depth: 3
+    toc_depth: 2
     number_sections: false
   html_document:
     toc: true
-    toc_depth: 3
+    toc_depth: 2
     toc_float: true
   word_document:
     toc: true
-    toc_depth: '3'
+    toc_depth: '2'
 ---
 
 \newpage
@@ -808,19 +808,15 @@ ggplot(top_jeux, aes(x = nb_runs, y = reorder(gameName, nb_runs))) +
     y = NULL
   )
 ```
-À la lecture du graphique, nous nous rendons compte que la popularité du jeu ne suffit pas pour en faire un jeu très speedrunné, car beaucoup de jeux qu'on ne considère pas comme des « classiques » du jeu vidéo sont présents dans ce classement, notamment Seterra (un jeu de quiz), Celeste (un jeu de plateforme) ou encore ULTRAKILL (un FPS).
-
-Le cas de Seterra est particulièrement révélateur : avec plus de 43 000 runs, soit plus du double du second du classement, ce jeu de quiz géographique gratuit et accessible en ligne se distingue surtout par son format. Des sessions très courtes, une rejouabilité immédiate et des mécaniques répétables en font un terrain idéal pour le speedrun, bien plus qu'un titre AAA classique.
-
-Nous en concluons donc que la popularité ne fait pas tout et qu'un jeu peu connu peut être speedrunné s'il a les bons atouts, notamment un format adapté (durée d'une run, accessibilité, mécaniques répétables). Cependant, au vu de la grande quantité de jeux connus dans le classement, nous aurions plus de chances de produire un jeu speedrunné s'il est très populaire.
-
-Notre objectif est donc de concevoir un jeu populaire avec de bonnes mécaniques de speedrun.
+À la lecture du graphique, nous nous rendons compte que la popularité du jeu ne suffit pas pour en faire un jeu très speedrunné, car beaucoup de jeux qu'on ne considère pas comme des « classiques » du jeu vidéo sont présents dans ce classement, notamment Diddy Kong Racing (un clone de Mario Kart) ou encore PAYDAY 2 (un FPS coopératif).
+Un jeu peu connu peut être speedrunné s'il a les bons atouts, notamment un format adapté (durée d'une run, accessibilité, mécaniques répétables) comme les jeux de course ou de plateforme.
+Cependant, au vu de la grande quantité de jeux connus dans le classement, nous aurions plus de chances de produire un jeu speedrunné s'il est très populaire.Notre objectif est donc de concevoir un jeu populaire avec de bonnes mécaniques de speedrun.
 
 ## 9. Quels sont les genres de jeu avec le plus de runs ?
 
 Après avoir identifié les jeux les plus speedrunnés, nous souhaitons élargir l'analyse aux genres qui rassemblent le plus de runs sur speedrun.com.
 
-Au vu des caractéristiques propres au speedrun (rejouabilité, sessions courtes), nous imaginons que les genres dominants seront les jeux de plateforme et les FPS, au détriment des RPG ou des jeux de stratégie, qui impliquent des parties beaucoup plus longues.
+Au vu des caractéristiques propres au speedrun (rejouabilité, sessions courtes), nous imaginons que les genres dominants seront les jeux de plateforme et les les jeux de courses, au détriment des RPG ou des jeux de stratégie, qui impliquent des parties beaucoup plus longues.
 
 
 ```{r echo=FALSE}
@@ -843,6 +839,15 @@ ggplot(top_genres, aes(x = nb_runs, y = reorder(genreName, nb_runs))) +
     y = NULL
   )
 ```
+À la lecture de ce graphique, le platformer semble être le genre de jeu le plus relancé par les joueurs, loin devant les jeux de course et les FPS.
+En effet, les jeux de plateforme se prêtent bien, comme nous l'avons vu précédemment, aux mécaniques de rejouabilité.
+Si on veut que notre jeu se classe parmi les plus speedrunnés, il peut être intéressant qu'il mélange les styles. Nous pouvons imaginer un platformer sous forme de course.
+
+## 9. L'année de sortie est-elle corrélée au nombre de runs des jeux ?
+
+L'année de sortie pourrait avoir un impact sur le nombre de runs par jeu. Même si cette information ne nous indiquera pas directement quand sortir notre jeu, elle peut révéler quelles époques (et donc quels thèmes de jeu dominants) incitent le plus les joueurs à relancer une partie pour battre des records.
+
+Nous imaginons que les jeux les plus anciens seront les plus speedrunnés, étant donné qu'ils auront eu plus de temps pour se faire connaître.
 ```{r echo=FALSE}
 jeux_resume <- speedrun %>%
   filter(!is.na(dateJeu)) %>%
@@ -861,6 +866,15 @@ ggplot(jeux_resume, aes(x = anneeJeu, weight = nb_runs)) +
     y = "Nombre total de runs"
   )
 ```
+Étonnamment, nous remarquons un pic du nombre de runs pour les jeux sortis autour de 2014. Cela pourrait s'expliquer par l'essor du streaming sur Twitch durant cette période, qui a donné au speedrun une visibilité nouvelle et incité les joueurs à revenir sur leurs jeux pour battre des records. 
+À cela s'ajoute une évolution dans la conception des jeux eux-mêmes, de plus en plus pensés pour la rejouabilité et le speedrun, avec des mécaniques comme les chronomètres intégrés, les classements en ligne ou les niveaux découpés en segments courts.
+
+Notre jeu devra donc s'inscrire dans un univers récent et être facilement partageable sur les plateformes de streaming.
+
+## 10 Quelles sont les plateformes les plus speedrunnées ?
+La question est cruciale : il nous faut choisir la bonne plateforme pour sortir notre jeu, car un jeu lancé sur une plateforme peu active aura du mal à fédérer une communauté de speedrun.
+Nous imaginons que la plateforme la plus speedrunnée sera le PC, son caractère universel le rendant accessible au plus grand nombre.
+
 ```{r echo=FALSE}
 # 1. Compter les runs par plateforme (en retirant les NA)
 runs_par_plateforme <- speedrun %>%
@@ -880,8 +894,19 @@ ggplot(top_plateformes, aes(x = nb_runs, y = reorder(platformName, nb_runs))) +
     y = NULL
   )
 ```
+Comme attendu, le PC domine largement devant toutes les autres plateformes. C'est en effet une plateforme qui permet facilement d'enregistrer et de soumettre des runs sur speedrun.com (ce qui peut d'ailleurs constituer un biais en faveur des jeux PC dans notre dataset).
+Quoi qu'il en soit, notre jeu devra être disponible sur PC pour maximiser ses chances d'être speedrunné.
 
+## Conclusion
 
+À travers nos analyses, nous avons dégagé plusieurs caractéristiques que devrait réunir notre jeu pour maximiser ses chances d'être speedrunné :
+
+- **Une large audience** : la popularité est un facteur déterminant, même si elle ne suffit pas à elle seule ;
+- **Des mécaniques favorisant la rejouabilité** : genres platformer ou course, avec des runs courtes et optimisables ;
+- **Un univers contemporain** : un style proche des jeux des années 2010, pensé pour le streaming et le partage sur les réseaux sociaux ;
+- **Une sortie sur PC** : pour faciliter l'enregistrement et la publication de runs sur Speedrun.com.
+
+Il convient toutefois de garder à l'esprit certaines limites de notre analyse. D'une part, les données de plateforme et de genre comportaient chacune environ 65 % de valeurs manquantes (NA) ; nous avons fait l'hypothèse que les 35 % restants étaient représentatifs de l'ensemble, mais cette approximation reste à considérer avec prudence. D'autre part, le dataset Speedrun.com sur-représente probablement les jeux PC du fait de la facilité de soumission, et la corrélation observée entre popularité et nombre de runs ne garantit pas qu'un jeu conçu spécifiquement pour le speedrun rencontrera le succès commercial.
 
 \newpage
 # Couplage des données 

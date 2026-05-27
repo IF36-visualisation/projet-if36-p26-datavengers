@@ -615,7 +615,7 @@ L’**Amérique du Nord** domine largement les ventes de jeux vidéo, représent
 
 \newpage
 
-## 5. Quels sont les jeux les plus vendus globalement ? {q5-galmes}
+## 5. Quels sont les jeux les plus vendus globalement ?
 
 Après avoir étudié la structure globale du marché du jeu vidéo — en identifiant les régions dominantes, les genres les plus populaires et les plateformes les plus performantes — il est pertinent de s’intéresser aux **jeux eux-mêmes**.
 
@@ -708,7 +708,7 @@ Le graphique met en évidence des **différences régionales marquées dans les 
 
 \newpage
 
-## 7. Quelles sont les préférences régionales en termes de jeux ? {#q7-jeux-region}
+## 7. Quelles sont les préférences régionales en termes de jeux ?
 
 Après avoir identifié les jeux les plus vendus à l’échelle mondiale, puis analysé les différences régionales en matière de **genres** et de **plateformes**, nous cherchons ici à approfondir l’analyse en nous intéressant directement aux **jeux eux-mêmes**.
 

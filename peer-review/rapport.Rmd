@@ -336,6 +336,7 @@ speedrun <- speedrun0 %>%
   left_join(platforms_data, by = "platformId") %>%
   left_join(genres_data, by = "genreId") %>%
   mutate(
+<<<<<<< Updated upstream
     dateJeu = dmy(releaseDateGame)
   ) %>%
   select(
@@ -349,8 +350,87 @@ speedrun <- speedrun0 %>%
     verifiedDate,
     dateJeu
   )
+=======
+    dateJeu  = dmy(releaseDateGame)
+  )
+speedrun <- speedrun %>% select(gameName,GenreName,platformName,dateJeu)
+>>>>>>> Stashed changes
 ```
 
+```{r echo=FALSE}
+# 1. Compter les runs par jeu
+runs_par_jeu <- speedrun %>%
+  count(gameName, name = "nb_runs")
+
+# 2. Garder les 15 jeux avec le plus de runs
+top_jeux <- runs_par_jeu %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_jeux, aes(x = nb_runs, y = reorder(gameName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des jeux par nombre de runs",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
+```{r echo=FALSE}
+# 1. Compter les runs par genre (en retirant les NA)
+runs_par_genre <- speedrun %>%
+  filter(!is.na(GenreName)) %>%
+  count(GenreName, name = "nb_runs")
+
+# 2. Garder les 15 genres avec le plus de runs
+top_genres <- runs_par_genre %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_genres, aes(x = nb_runs, y = reorder(GenreName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des genres par nombre de runs",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
+```{r echo=FALSE}
+jeux_resume <- speedrun %>%
+  filter(!is.na(dateJeu)) %>%
+  group_by(gameName) %>%
+  summarise(
+    anneeJeu = year(first(dateJeu)),
+    nb_runs  = n()
+  ) %>%
+  ungroup()
+
+ggplot(jeux_resume, aes(x = anneeJeu, weight = nb_runs)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribution des runs selon l'année de sortie du jeu",
+    x = "Année de sortie du jeu",
+    y = "Nombre total de runs"
+  )
+```
+```{r echo=FALSE}
+# 1. Compter les runs par plateforme (en retirant les NA)
+runs_par_plateforme <- speedrun %>%
+  filter(!is.na(platformName)) %>%
+  count(platformName, name = "nb_runs")
+
+# 2. Garder les 15 plateformes les plus populaires
+top_plateformes <- runs_par_plateforme %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_plateformes, aes(x = nb_runs, y = reorder(platformName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des plateformes les plus populaires chez les speedrunners",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
 ```{r include=FALSE}
 # (rappel : uniformiser les chaînes vides en NA si pas déjà fait)
 speedrun <- speedrun %>%
@@ -376,6 +456,10 @@ jeux_incomplets
 nrow(speedrun)-sum(jeux_incomplets$nb_runs)
 ```
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 ## 1. Quelles plateformes ont généré le plus de ventes à l'échelle mondiale ? {#q1-plateformes}
 
 Pour débuter notre exploration, nous cherchons à identifier quelles plateformes ont généré le plus de ventes de jeux à l’échelle mondiale. Avant de visualiser les données, nous pouvons supposer que le marché est historiquement écrasé par quelques consoles phares de constructeurs majeurs (comme Sony ou Nintendo), mais nous nous demandons si cette domination se concentre sur une ou deux machines, ou si la répartition est plus équilibrée entre les différentes générations de consoles.
@@ -776,6 +860,106 @@ Les **autres régions** présentent un profil intermédiaire, proche de celui de
 
 Ainsi, cette analyse confirme que le succès d’un jeu ne dépend pas uniquement de sa performance globale. Il est fortement influencé par des **facteurs culturels et régionaux**, qui façonnent les préférences des joueurs et expliquent les écarts observés entre les différentes zones géographiques.
 
+## 8. Quels sont les jeu avec le plus de runs ?
+
+Après avoir étudié en profondeur les ventes de jeux vidéo à l'échelle mondiale, nous allons nous intéresser au nombre de runs de speedrun que chacun des jeux possède sur le site speedrun.com.
+
+Notre objectif est de savoir quels sont les plus speedrunnés afin d'avoir une idée du style de jeux que la communauté apprécie relancer.
+
+Nous imaginons que le nombre de runs le plus élevé sera atteint par des jeux très connus, du style Mario Bros ou Minecraft par exemple, des jeux connus dans le monde entier.
+
+
+```{r echo=FALSE}
+# 1. Compter les runs par jeu
+runs_par_jeu <- speedrun %>%
+  count(gameName, name = "nb_runs")
+
+# 2. Garder les 15 jeux avec le plus de runs
+top_jeux <- runs_par_jeu %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_jeux, aes(x = nb_runs, y = reorder(gameName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des jeux par nombre de runs",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
+À la lecture du graphique, nous nous rendons compte que la popularité du jeu ne suffit pas pour en faire un jeu très speedrunné, car beaucoup de jeux qu'on ne considère pas comme des « classiques » du jeu vidéo sont présents dans ce classement, notamment Seterra (un jeu de quiz), Celeste (un jeu de plateforme) ou encore ULTRAKILL (un FPS).
+
+Le cas de Seterra est particulièrement révélateur : avec plus de 43 000 runs, soit plus du double du second du classement, ce jeu de quiz géographique gratuit et accessible en ligne se distingue surtout par son format. Des sessions très courtes, une rejouabilité immédiate et des mécaniques répétables en font un terrain idéal pour le speedrun, bien plus qu'un titre AAA classique.
+
+Nous en concluons donc que la popularité ne fait pas tout et qu'un jeu peu connu peut être speedrunné s'il a les bons atouts, notamment un format adapté (durée d'une run, accessibilité, mécaniques répétables). Cependant, au vu de la grande quantité de jeux connus dans le classement, nous aurions plus de chances de produire un jeu speedrunné s'il est très populaire.
+
+Notre objectif est donc de concevoir un jeu populaire avec de bonnes mécaniques de speedrun.
+
+## 9. Quels sont les genres de jeu avec le plus de runs ?
+
+Après avoir identifié les jeux les plus speedrunnés, nous souhaitons élargir l'analyse aux genres qui rassemblent le plus de runs sur speedrun.com.
+
+Au vu des caractéristiques propres au speedrun (rejouabilité, sessions courtes), nous imaginons que les genres dominants seront les jeux de plateforme et les FPS, au détriment des RPG ou des jeux de stratégie, qui impliquent des parties beaucoup plus longues.
+
+
+```{r echo=FALSE}
+# 1. Compter les runs par genre (en retirant les NA)
+runs_par_genre <- speedrun %>%
+  filter(!is.na(GenreName)) %>%
+  mutate(GenreName = if_else(GenreName == "First-person shooter", "FPS", GenreName)) %>%
+  mutate(GenreName = if_else(GenreName == "3D Platformer", "Platformer", GenreName)) %>%
+  count(GenreName, name = "nb_runs")
+
+# 2. Garder les 15 genres avec le plus de runs
+top_genres <- runs_par_genre %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_genres, aes(x = nb_runs, y = reorder(GenreName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des genres par nombre de runs",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
+```{r echo=FALSE}
+jeux_resume <- speedrun %>%
+  filter(!is.na(dateJeu)) %>%
+  group_by(gameName) %>%
+  summarise(
+    anneeJeu = year(first(dateJeu)),
+    nb_runs  = n()
+  ) %>%
+  ungroup()
+
+ggplot(jeux_resume, aes(x = anneeJeu, weight = nb_runs)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "white") +
+  labs(
+    title = "Distribution des runs selon l'année de sortie du jeu",
+    x = "Année de sortie du jeu",
+    y = "Nombre total de runs"
+  )
+```
+```{r echo=FALSE}
+# 1. Compter les runs par plateforme (en retirant les NA)
+runs_par_plateforme <- speedrun %>%
+  filter(!is.na(platformName)) %>%
+  count(platformName, name = "nb_runs")
+
+# 2. Garder les 15 plateformes les plus populaires
+top_plateformes <- runs_par_plateforme %>%
+  slice_max(nb_runs, n = 15)
+
+# 3. Tracer
+ggplot(top_plateformes, aes(x = nb_runs, y = reorder(platformName, nb_runs))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 15 des plateformes les plus populaires chez les speedrunners",
+    x = "Nombre de runs",
+    y = NULL
+  )
+```
 \newpage
 
 # Analyse de Speedrun.com

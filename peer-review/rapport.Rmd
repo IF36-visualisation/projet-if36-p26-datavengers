@@ -304,45 +304,47 @@ palette_plateformes <- c(
 
 
 ```{r include=FALSE}
+
 games_data <- games_data0
 genres_data <- genres_data0
 platforms_data <- platforms_data0
+speedrun <- speedrun0
 
-speedrun0 <- speedrun0 %>%
-  mutate(
-    verifiedDate = as.Date(verifiedDate)
-  ) %>%
+speedrun <- speedrun %>%
+  mutate(verifiedDate = as.Date(verifiedDate)) %>%
   filter(
     !is.na(verifiedDate),
     verifiedDate <= as.Date("2016-12-22")
   )
 
+
 games_data <- games_data %>%
   select(gameId, gameName, platforms, genres, releaseDate)
 
-platforms_data <- platforms_data %>% 
+
+
+platforms_data <- platforms_data %>%
   rename(platformName = name)
 
-genres_data <- genres_data %>% 
-  rename(GenreName = name)
+genres_data <- genres_data %>%
+  rename(genreName = name)
 
-speedrun <- speedrun0 %>%
+
+speedrun <- speedrun %>%
   left_join(games_data, by = "gameId") %>%
   rename(
-    platformId = platforms,
-    genreId = genres,
+    platformId      = platforms,
+    genreId         = genres,
     releaseDateGame = releaseDate
   ) %>%
   left_join(platforms_data, by = "platformId") %>%
   left_join(genres_data, by = "genreId") %>%
-  mutate(
-    dateJeu = dmy(releaseDateGame)
-  ) %>%
+  mutate(dateJeu = dmy(releaseDateGame)) %>%
   select(
     gameName,
-    GenreName,
+    genreName,
     platformName,
-    platform,
+    platform,        
     categoryId,
     runId,
     players,
@@ -355,18 +357,18 @@ speedrun <- speedrun0 %>%
 # (rappel : uniformiser les chaînes vides en NA si pas déjà fait)
 speedrun <- speedrun %>%
   mutate(
-    GenreName    = na_if(GenreName, ""),
+    genreName    = na_if(genreName, ""),
     platformName = na_if(platformName, "")
   )
 
 jeux_incomplets <- speedrun %>%
-  filter(is.na(GenreName) | is.na(platformName)) %>%
+  filter(is.na(genreName) | is.na(platformName)) %>%
   add_count(gameName, name = "nb_runs") %>%
-  distinct(gameName, GenreName, platformName, nb_runs) %>%
+  distinct(gameName, genreName, platformName, nb_runs) %>%
   mutate(
     manque = case_when(
-      is.na(GenreName) & is.na(platformName) ~ "genre + plateforme",
-      is.na(GenreName)                       ~ "genre",
+      is.na(genreName) & is.na(platformName) ~ "genre + plateforme",
+      is.na(genreName)                       ~ "genre",
       is.na(platformName)                    ~ "plateforme"
     )
   ) %>%
@@ -824,17 +826,16 @@ Au vu des caractéristiques propres au speedrun (rejouabilité, sessions courtes
 ```{r echo=FALSE}
 # 1. Compter les runs par genre (en retirant les NA)
 runs_par_genre <- speedrun %>%
-  filter(!is.na(GenreName)) %>%
-  mutate(GenreName = if_else(GenreName == "First-person shooter", "FPS", GenreName)) %>%
-  mutate(GenreName = if_else(GenreName == "3D Platformer", "Platformer", GenreName)) %>%
-  count(GenreName, name = "nb_runs")
+  filter(!is.na(genreName)) %>%
+  mutate(genreName = if_else(genreName == "First-person shooter", "FPS", genreName)) %>%
+  count(genreName, name = "nb_runs")
 
 # 2. Garder les 15 genres avec le plus de runs
 top_genres <- runs_par_genre %>%
   slice_max(nb_runs, n = 15)
 
 # 3. Tracer
-ggplot(top_genres, aes(x = nb_runs, y = reorder(GenreName, nb_runs))) +
+ggplot(top_genres, aes(x = nb_runs, y = reorder(genreName, nb_runs))) +
   geom_col(fill = "steelblue") +
   labs(
     title = "Top 15 des genres par nombre de runs",

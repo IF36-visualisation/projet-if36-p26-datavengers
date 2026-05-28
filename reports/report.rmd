@@ -859,6 +859,78 @@ mieux adaptées à la sécurité (autoroutes, voies rapides).
 > Le nombre de voies influence donc bien la gravité des accidents : plus la route est large
 > et ses sens séparés, moins les accidents sont mortels.
 
+### Question : Les accidents sont-ils plus graves la nuit que le jour ?
+
+#### Objectif de l'analyse :
+L'objectif est de comparer la répartition des niveaux de gravité des accidents selon les conditions d'éclairage. La variable `lum` distingue la pleine journée, l'aube/crépuscule, et plusieurs situations nocturnes (avec ou sans éclairage). Nous cherchons à déterminer si l'absence de lumière naturelle est associée à des accidents proportionnellement plus mortels.
+
+```{r lum_data_prep}
+df_lum <- df_raw %>%
+  filter(lum %in% c(1, 2, 3, 4, 5),
+         grav %in% c(1, 2, 3, 4)) %>%
+  mutate(
+    lum_label = factor(lum,
+      levels = c(1, 2, 3, 4, 5),
+      labels = c("Plein jour", "Crépuscule/Aube", "Nuit sans éclairage",
+                 "Nuit avec éclairage non allumé", "Nuit avec éclairage allumé")),
+    grav_label = factor(grav,
+      levels = c(1, 4, 3, 2),
+      labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(lum_label, grav_label) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(lum_label) %>%
+  mutate(
+    pct = n / sum(n),
+    dangerosite = sum(pct[grav_label %in% c("Tué", "Blessé hospitalisé")])
+  ) %>%
+  ungroup() %>%
+  mutate(lum_label = reorder(lum_label, dangerosite))
+```
+
+```{r lum_plot}
+ggplot(df_lum, aes(x = pct, y = lum_label, fill = grav_label)) +
+  geom_col(position = "stack", width = 0.7) +
+  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0)) +
+  scale_fill_manual(
+    values = c(
+      "Indemne"               = "#cbd5e1",
+      "Blessé léger"          = "#fef08a",
+      "Blessé hospitalisé"    = "#f97316",
+      "Tué"                   = "#b91c1c"
+    ),
+    breaks = c("Tué", "Blessé hospitalisé", "Blessé léger", "Indemne")
+  ) +
+  labs(
+    title    = "Gravité des accidents selon les conditions d'éclairage",
+    subtitle = "Conditions classées par ordre croissant de dangerosité",
+    x        = "Proportion au sein de la condition d'éclairage (Total = 100%)",
+    y        = "Condition d'éclairage",
+    fill     = "Niveau de gravité"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    legend.position = "top",
+    legend.title  = element_text(face = "bold", size = 9.5),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor   = element_blank(),
+    axis.text = element_text(color = "#334155", size = 9.5)
+  )
+```
+
+#### Analyse des résultats :
+Ce graphique en barres empilées à 100% permet de comparer directement la sévérité des accidents selon les conditions d'éclairage, classées automatiquement de la plus dangereuse (en haut) à la moins dangereuse (en bas).
+
+La **nuit sans éclairage** ressort comme la condition la plus meurtrière : la part de tués et de blessés hospitalisés y est nettement plus élevée que dans les autres situations. L'absence totale d'éclairage réduit drastiquement la visibilité, les temps de réaction et la capacité à anticiper les obstacles.
+
+La **nuit avec éclairage non allumé** présente également une gravité élevée, probablement due à une fausse impression de sécurité chez les conducteurs qui supposent un éclairage fonctionnel.
+
+À l'inverse, les accidents en **plein jour** affichent le profil le plus favorable, avec la proportion d'indemnes et de blessés légers la plus importante. Les **accidents de crépuscule/aube** se situent dans une position intermédiaire, ce qui confirme que la visibilité dégradée, même partielle, suffit à augmenter la dangerosité.
+
+> La nuit, et plus particulièrement sans éclairage public, est donc bien associée à des accidents significativement plus graves. L'éclairage routier joue un rôle protecteur mesurable sur la sévérité des blessures.
+
 ### Question Marega 
 #### **Le type de route influence-t-il la gravité des accidents ?**
 

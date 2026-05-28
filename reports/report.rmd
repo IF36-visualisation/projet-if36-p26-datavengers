@@ -442,6 +442,92 @@ ggplot(profil_usagers, aes(x = meteo, y = part, fill = gravite_usager)) +
 Ce graphique complete l'analyse precedente en s'interessant non plus aux accidents, mais a la gravite des usagers impliques. On observe que sous vent fort / tempete, brouillard / fumee et temps eblouissant, la part d'usagers tues ou hospitalises est plus elevee, ce qui confirme une gravite plus importante dans ces conditions. À l'inverse, sous pluie legere, la structure est moins severe, avec une plus grande part d'usagers indemnes ou legerement blesses. Il faut toutefois rester prudent pour les categories les moins frequentes, comme « Autre » ou le vent fort / la tempete, car leurs effectifs sont plus faibles.
 
 
+#### **Quelle est la répartition des victimes par âge et par sexe ?**
+
+Pour répondre à cette question, j’utilise un diagramme en barres groupées.
+
+Avant de réaliser le graphique, nous proposons de répartir les victimes en plusieurs classes d’âge afin de rendre l’analyse plus lisible :
+
+- 0-14 ans ;
+- 15-24 ans ;
+- 25-34 ans ;
+- 35-44 ans ;
+- 45-54 ans ;
+- 55-64 ans ;
+- 65-74 ans ;
+- 75 ans et plus.
+
+Cette organisation permet de comparer plus facilement le nombre de victimes selon l’âge et le sexe.
+
+#### Création d’un jeu de données des victimes par classe d’âge et par sexe
+
+```{r}
+df_victimes_age_sexe <- df %>%
+  filter(
+    grav %in% c(2, 3, 4),      # On garde seulement les victimes
+    !is.na(sexe),              # On enlève les valeurs manquantes du sexe
+    sexe %in% c(1, 2),         # 1 = Masculin, 2 = Féminin
+    !is.na(an),                # Année de l'accident
+    !is.na(an_nais),           # Année de naissance
+    an_nais > 1900,            # On enlève les années incohérentes
+    an_nais <= an              # La naissance doit être avant l'accident
+  ) %>%
+  mutate(
+    sexe_label = factor(
+      sexe,
+      levels = c(1, 2),
+      labels = c("Masculin", "Féminin")
+    ),
+    
+    age = an - an_nais,
+    
+    classe_age = cut(
+      age,
+      breaks = c(0, 14, 24, 34, 44, 54, 64, 74, 120),
+      labels = c(
+        "0-14 ans",
+        "15-24 ans",
+        "25-34 ans",
+        "35-44 ans",
+        "45-54 ans",
+        "55-64 ans",
+        "65-74 ans",
+        "75 ans et plus"
+      ),
+      right = TRUE
+    )
+  ) %>%
+  filter(!is.na(classe_age)) %>%
+  group_by(classe_age, sexe_label) %>%
+  summarise(
+    nb_victimes = n(),
+    .groups = "drop"
+  )
+```
+
+#### Visualisation des victimes par âge et par sexe
+```{r}
+ggplot(df_victimes_age_sexe, aes(x = classe_age, y = nb_victimes, fill = sexe_label)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(
+    values = c(
+    "Masculin" = "steelblue",
+    "Féminin" = "pink"
+    )
+  ) +
+  labs(
+    title = "Répartition des victimes par âge et par sexe",
+    subtitle = "Victimes blessées ou tuées dans les accidents",
+    x = "Classe d'âge",
+    y = "Nombre de victimes",
+    fill = "Sexe"
+  ) +
+  theme_classic()
+```
+Ce graphique montre la répartition des victimes par âge et par sexe. On observe une surreprésentation massive des jeunes, avec un pic critique chez les 15-24 ans, suivi d'une baisse progressive vers les tranches d'âge supérieures.
+
+L'écart entre les genres est flagrant : les hommes sont systématiquement plus touchés que les femmes. Néanmoins, les courbes masculine et féminine évoluent de manière strictement parallèle, augmentant и diminuant proportionnellement sur la quasi-totalité de l'axe. Ce constat montre que malgré la vulnérabilité accrue des hommes, l'évolution du risque routier selon l'âge reste identique pour les deux sexes.
+
 ### Question Paul-Louis
 #### Les motos ont-elles un taux de gravité plus élevé ?
 

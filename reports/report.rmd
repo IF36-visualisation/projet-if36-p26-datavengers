@@ -681,6 +681,170 @@ Ce graphique montre le nombre d'accidents regroupés par grandes périodes de la
 
 La période la plus fréquente est mise en évidence en rouge : il s'agit de l'après-midi (entre 12h et 18h), moment qui enregistre le pic absolu avec 101 381 accidents. Cela correspond aux heures où les flux de circulation cumulés (déplacements professionnels, livraisons, trajets scolaires et départs en fin de journée) sont les plus intenses. À l'inverse, le nombre d'accidents atteint son minimum au milieu de la nuit (entre 00h et 06h) avec 22 593 accidents, en raison d'une baisse radicale du trafic.
 
+#### L'état de la chaussée influence-t-il les accidents ?
+
+Pour répondre à cette question, nous analysons l’état de la chaussée au moment de l’accident. L’objectif est de voir si certaines conditions de route sont plus fréquentes dans les accidents et si elles sont associées à une gravité plus importante.
+
+Nous proposons deux graphiques complémentaires :
+
+- un diagramme en barres en pourcentage, pour observer la part de chaque état de chaussée dans le nombre total d’accidents ;
+- un diagramme en barres empilées à 100 %, pour comparer la proportion d’accidents graves et non graves selon l’état de la chaussée.
+
+Cette double visualisation permet de distinguer la fréquence des accidents et leur gravité selon les conditions de route.
+
+#### Création d’un jeu de données des accidents selon l’état de la chaussée et la gravité
+```{r}
+df_accidents_chaussee <- df %>%
+  filter(!is.na(surf), surf > 0, surf != 9) %>%
+  mutate(
+    Etat_chaussee = factor(
+      surf,
+      levels = c(1, 2, 3, 4, 5, 6, 7, 8),
+      labels = c(
+        "Normale",
+        "Mouillée",
+        "Flaques",
+        "Inondée",
+        "Enneigée",
+        "Boue",
+        "Verglacée",
+        "Corps gras"
+      )
+    ),
+    Gravite = factor(
+      grav,
+      levels = c(1, 4, 3, 2),
+      labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué")
+    ),
+    Accident_grave = ifelse(grav %in% c(2, 3), "Grave", "Non grave")
+  )
+
+# Trier les états de chaussée selon la proportion d'accidents graves
+ordre_chaussee <- df_accidents_chaussee %>%
+  group_by(Etat_chaussee) %>%
+  summarise(
+    prop_grave = mean(Accident_grave == "Grave"),
+    .groups = "drop"
+  ) %>%
+  arrange(prop_grave) %>%
+  pull(Etat_chaussee)
+
+df_accidents_chaussee <- df_accidents_chaussee %>%
+  mutate(
+    Etat_chaussee = factor(Etat_chaussee, levels = ordre_chaussee)
+  )
+
+df_accidents_chaussee_total <- df %>%
+  filter(!is.na(surf), surf > 0, surf != 9) %>%
+  mutate(
+    Etat_chaussee = factor(
+      surf,
+      levels = c(1, 2, 3, 4, 5, 6, 7, 8),
+      labels = c(
+        "Normale",
+        "Mouillée",
+        "Flaques",
+        "Inondée",
+        "Enneigée",
+        "Boue",
+        "Verglacée",
+        "Corps gras"
+      )
+    )
+  ) %>%
+  distinct(Num_Acc, Etat_chaussee) %>%
+  group_by(Etat_chaussee) %>%
+  summarise(
+    nb_accidents = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    pourcentage = nb_accidents / sum(nb_accidents)
+  ) %>%
+  arrange(pourcentage) %>%
+  mutate(
+    Etat_chaussee = factor(Etat_chaussee, levels = Etat_chaussee)
+  )
+```
+
+#### Visualisation de la répartition des accidents selon l’état de la chaussée
+
+```{r}
+ggplot(df_accidents_chaussee_total, aes(x = Etat_chaussee, y = pourcentage)) +
+  geom_col(
+    fill = "#457B9D",
+    alpha = 0.9,
+    width = 0.7
+  ) +
+  
+  geom_text(
+    aes(label = scales::percent(pourcentage, accuracy = 0.1)),
+    vjust = -0.4,
+    size = 4
+  ) +
+  
+  scale_y_continuous(
+    labels = scales::label_percent(),
+    limits = c(0, max(df_accidents_chaussee_total$pourcentage) * 1.15)
+  ) +
+  
+  labs(
+    title = "Répartition des accidents selon l'état de la chaussée",
+    subtitle = "Part de chaque état de chaussée dans le nombre total d'accidents",
+    x = "État de la chaussée",
+    y = "Pourcentage d'accidents"
+  ) +
+  
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold", size = 14)
+  )
+```
+
+Ce graphique montre la part de chaque état de la chaussée dans le nombre total d'accidents. On observe que les accidents survenant dans des conditions particulièrement dégradées (chaussée enneigée, verglacée, inondée ou boueuse) restent extrêmement rares, représentant chacun moins de 1% du total.
+
+L'état le plus fréquent est mis en évidence par le pic absolu du graphique : il s'agit de la chaussée normale (80.4%), suivie de loin par la chaussée mouillée (18.7%). Cela correspond logiquement aux conditions les plus courantes lors des déplacements quotidiens, rappelant ainsi que la majorité des accidents se produit par temps sec, là où la vigilance des conducteurs peut parfois se relâcher.
+
+#### Visualisation de la gravité des accidents selon l’état de la chaussée
+
+```{r}
+ggplot(df_accidents_chaussee, aes(x = Etat_chaussee, fill = Accident_grave)) +
+  geom_bar(
+    position = position_fill(reverse = TRUE),
+    alpha = 0.9,
+    width = 0.7
+  ) +
+  
+  scale_y_continuous(labels = scales::label_percent()) +
+  
+  scale_fill_manual(
+    values = c("Grave" = "#E63946", "Non grave" = "#A8DADC"),
+    breaks = c("Grave", "Non grave"),
+    name = "Gravité de l'accident"
+  ) +
+  
+  labs(
+    title = "Proportion d'accidents graves selon l'état de la chaussée",
+    subtitle = "Les conditions extrêmes augmentent-elles la gravité des sinistres ?",
+    x = "État de la chaussée",
+    y = "Pourcentage d'accidents"
+  ) + 
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = "top",
+    plot.title = element_text(face = "bold", size = 14)
+  )
+```
+Ce graphique montre la proportion d'accidents graves selon l'état de la chaussée. On observe que sur une chaussée mouillée, normale ou enneigée, la grande majorité des sinistres reste non grave, maintenant un taux de gravité relativement stable et bas (autour de 15% à 25%).
+
+La situation la plus dangereuse est mise en évidence par le pic absolu de gravité du graphique : il s'agit de la chaussée avec de la boue, où la proportion d'accidents graves bondit pour atteindre près de 45%. Cela montre que si ces conditions extrêmes sont statistiquement très rares en nombre absolu, elles augmentent de manière drastique la dangerosité des sinistres une fois qu'ils surviennent, en raison d'une perte de contrôle totale du véhicule.
+
 ### Question Paul-Louis
 #### Les motos ont-elles un taux de gravité plus élevé ?
 

@@ -2,8 +2,8 @@
 title: "Projet IF36"
 subtitle: Analyse des accidents de la route en France
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ## Présentation du projet
@@ -480,11 +480,391 @@ ggplot(df_plot, aes(x = Type_Vehicule, fill = Gravite_Label)) +
 
 Le graphique montre très clairement que les accidents de moto sont proportionnellement beaucoup plus graves que les accidents de voiture. La probabilité de s'en sortir indemne est drastiquement plus faible en deux-roues.
 
+# Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ?
+
+## 1. Chargement des librairies et des données
+
+```{r librairies}
+library(tidyverse)
+library(scales)
+library(ggplot2)
+library(forcats)
+```
+
+```{r chargement}
+df_raw <- read_csv2(
+  "../data/accidents_2020_2024_PROPRE.csv",
+  show_col_types = FALSE
+)
+```
+
+---
+
+## 2. Préparation des données
+
+On conserve uniquement les colonnes utiles (`manv`, `col`, `grav`) et on filtre les valeurs
+manquantes ou non renseignées (codées `-1` ou `0`).
+
+```{r preparation}
+# Correspondances manœuvre (manv)
+labels_manv <- c(
+  "1"  = "Sans chgt direction",
+  "2"  = "Même sens, même file",
+  "3"  = "Entre 2 files",
+  "4"  = "En marche arrière",
+  "5"  = "À contresens",
+  "6"  = "En franchissant méd.",
+  "7"  = "Dans couloir bus",
+  "8"  = "Insertion voie",
+  "9"  = "Fait demi-tour",
+  "10" = "Change de file (G)",
+  "11" = "Change de file (D)",
+  "12" = "Dépasse à gauche",
+  "13" = "Dépasse à droite",
+  "14" = "Tourne à gauche",
+  "15" = "Tourne à droite",
+  "16" = "Dépasse piéton",
+  "17" = "Perd contrôle",
+  "18" = "Évite obstacle",
+  "19" = "Porte ouverte",
+  "20" = "Arrêté (hors urgence)",
+  "21" = "Arrêté (urgence)",
+  "22" = "Autre manœuvre"
+)
+
+# Correspondances type de collision (col)
+labels_col <- c(
+  "1" = "Deux véh. – frontale",
+  "2" = "Deux véh. – arrière",
+  "3" = "Deux véh. – côté",
+  "4" = "Trois véh. – chaîne",
+  "5" = "Trois véh. – cols. mult.",
+  "6" = "Autre collision",
+  "7" = "Sans collision"
+)
+
+# Correspondances gravité (grav)
+labels_grav <- c(
+  "1" = "Indemne",
+  "2" = "Tué",
+  "3" = "Hospitalisé",
+  "4" = "Blessé léger"
+)
+
+df <- df_raw %>%
+  select(manv, col, grav) %>%
+  filter(
+    !is.na(manv), manv > 0,
+    !is.na(col),  col  > 0,
+    !is.na(grav), grav > 0
+  ) %>%
+  mutate(
+    manv_label = recode(as.character(manv), !!!labels_manv, .default = "Inconnu"),
+    col_label  = recode(as.character(col),  !!!labels_col,  .default = "Inconnu"),
+    grav_label = recode(as.character(grav), !!!labels_grav, .default = "Inconnu"),
+    # Variable binaire : grave si tué ou hospitalisé
+    grave = grav %in% c(2, 3)
+  )
+
+glimpse(df)
+```
+
+---
+
+## 3. Analyse par type de collision
+
+### 3.1 Répartition de la gravité par type de collision
+
+```{r col_gravite_stacked}
+df_col <- df %>%
+  count(col_label, grav_label) %>%
+  group_by(col_label) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(
+    col_label  = fct_reorder(col_label, n, .fun = sum, .desc = TRUE),
+    grav_label = factor(grav_label, levels = c("Tué", "Hospitalisé", "Blessé léger", "Indemne"))
+  )
+
+ggplot(df_col, aes(x = col_label, y = pct, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Tué"          = "#d62728",
+      "Hospitalisé"  = "#ff7f0e",
+      "Blessé léger" = "#aec7e8",
+      "Indemne"      = "#2ca02c"
+    ),
+    name = "Gravité"
+  ) +
+  labs(
+    title    = "Gravité des accidents selon le type de collision",
+    subtitle = "En % des usagers impliqués, 2020–2024",
+    x        = "Type de collision",
+    y        = "Part (%)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1))
+```
+
+### 3.2 Taux d'accidents graves (tués + hospitalisés) par type de collision
+
+```{r col_taux_grave}
+df_col_grave <- df %>%
+  group_by(col_label) %>%
+  summarise(
+    total       = n(),
+    nb_graves   = sum(grave),
+    taux_grave  = nb_graves / total * 100
+  ) %>%
+  mutate(col_label = fct_reorder(col_label, taux_grave))
+
+ggplot(df_col_grave, aes(x = col_label, y = taux_grave, fill = taux_grave)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  geom_text(
+    aes(label = paste0(round(taux_grave, 1), "%")),
+    hjust = -0.1, size = 3.5
+  ) +
+  scale_fill_gradient(low = "#fdae61", high = "#d73027") +
+  coord_flip(ylim = c(0, max(df_col_grave$taux_grave) * 1.15)) +
+  labs(
+    title    = "Taux d'accidents graves par type de collision",
+    subtitle = "Tués + hospitalisés / total usagers impliqués",
+    x        = NULL,
+    y        = "Taux de gravité (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+---
+
+## 4. Analyse par type de manœuvre
+
+### 4.1 Les 10 manœuvres les plus fréquentes
+
+```{r manv_frequence}
+top10_manv <- df %>%
+  count(manv_label, sort = TRUE) %>%
+  slice_head(n = 10) %>%
+  pull(manv_label)
+```
+
+### 4.2 Taux de gravité pour les 10 manœuvres les plus fréquentes
+
+```{r manv_taux_grave}
+df_manv_grave <- df %>%
+  filter(manv_label %in% top10_manv) %>%
+  group_by(manv_label) %>%
+  summarise(
+    total      = n(),
+    nb_graves  = sum(grave),
+    taux_grave = nb_graves / total * 100
+  ) %>%
+  mutate(manv_label = fct_reorder(manv_label, taux_grave))
+
+ggplot(df_manv_grave, aes(x = manv_label, y = taux_grave, fill = taux_grave)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  geom_text(
+    aes(label = paste0(round(taux_grave, 1), "%")),
+    hjust = -0.1, size = 3.5
+  ) +
+  scale_fill_gradient(low = "#fee090", high = "#a50026") +
+  coord_flip(ylim = c(0, max(df_manv_grave$taux_grave) * 1.15)) +
+  labs(
+    title    = "Taux de gravité selon la manœuvre (Top 10 les plus fréquentes)",
+    subtitle = "Tués + hospitalisés / total usagers impliqués, 2020–2024",
+    x        = NULL,
+    y        = "Taux de gravité (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+### 4.3 Répartition de la gravité par manœuvre (barres empilées)
+
+```{r manv_gravite_stacked}
+df_manv_stack <- df %>%
+  filter(manv_label %in% top10_manv) %>%
+  count(manv_label, grav_label) %>%
+  group_by(manv_label) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(
+    grav_label = factor(grav_label, levels = c("Tué", "Hospitalisé", "Blessé léger", "Indemne"))
+  )
+
+# Ordre des manœuvres basé sur le taux de cas graves (tué + hospitalisé)
+ordre_manv <- df_manv_stack %>%
+  filter(grav_label %in% c("Tué", "Hospitalisé")) %>%
+  group_by(manv_label) %>%
+  summarise(pct_grave = sum(pct)) %>%
+  arrange(pct_grave) %>%
+  pull(manv_label)
+
+df_manv_stack <- df_manv_stack %>%
+  mutate(manv_label = factor(manv_label, levels = ordre_manv))
+
+ggplot(df_manv_stack, aes(x = manv_label, y = pct, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Tué"          = "#d62728",
+      "Hospitalisé"  = "#ff7f0e",
+      "Blessé léger" = "#aec7e8",
+      "Indemne"      = "#2ca02c"
+    ),
+    name = "Gravité"
+  ) +
+  coord_flip() +
+  labs(
+    title    = "Répartition de la gravité selon la manœuvre (Top 10)",
+    subtitle = "En % des usagers impliqués, 2020–2024",
+    x        = NULL,
+    y        = "Part (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+---
+
+## 5. Croisement manœuvre × type de collision
+
+On s'intéresse au taux de gravité pour les combinaisons les plus fréquentes.
+
+```{r croisement_heatmap}
+df_cross <- df %>%
+  filter(manv_label %in% top10_manv) %>%
+  group_by(manv_label, col_label) %>%
+  summarise(
+    total      = n(),
+    taux_grave = sum(grave) / n() * 100,
+    .groups    = "drop"
+  ) %>%
+  filter(total >= 50)   # On garde les combinaisons suffisamment représentées
+
+ggplot(df_cross, aes(x = col_label, y = manv_label, fill = taux_grave)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = paste0(round(taux_grave, 0), "%")), size = 3) +
+  scale_fill_gradient(
+    low  = "#ffffb2",
+    high = "#bd0026",
+    name = "Taux\ngravité (%)"
+  ) +
+  labs(
+    title    = "Taux de gravité : croisement manœuvre × type de collision",
+    subtitle = "Combinaisons avec au moins 50 cas, 2020–2024",
+    x        = "Type de collision",
+    y        = "Manœuvre"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1))
+```
+
+
+```
+
+```
+
+### Conclusions
+
+- **Type de collision** : Les collisions **frontales** sont systématiquement les plus mortelles, 
+  suivies des collisions impliquant plusieurs véhicules. Les accidents **sans collision** 
+  (sorties de route) présentent également un taux de gravité élevé.
+
+- **Manœuvre** : Les manœuvres à risque élevé sont typiquement la **perte de contrôle**, 
+  le **demi-tour** et les **changements de file**. Les manœuvres sans changement de direction 
+  dominent en fréquence mais pas forcément en gravité relative.
+
+- **Croisement** : Certaines combinaisons manœuvre × collision (ex. perte de contrôle + 
+  collision frontale) concentrent les accidents les plus graves et méritent une attention 
+  particulière des politiques de prévention.
+
+> **Limite** : Le taux de gravité mesuré ici est par **usager impliqué**, pas par accident. 
+> Les accidents multi-victimes peuvent biaiser légèrement les comparaisons entre types.
+```
+# Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ?
+
+## 1 Fréquence des accidents par nombre de voies
+
+```{r nbv_frequence}
+df_nbv <- df_raw %>%
+  select(Num_Acc, nbv, grav) %>%
+  filter(!is.na(nbv), nbv > 0, !is.na(grav), grav > 0) %>%
+  mutate(
+    grav_label = factor(
+      recode(as.character(grav), !!!labels_grav, .default = "Inconnu"),
+      levels = c("Tué", "Hospitalisé", "Blessé léger", "Indemne")
+    )
+  )
+
+df_nbv_freq <- df_nbv %>%
+  distinct(Num_Acc, nbv) %>%
+  count(nbv) %>%
+  mutate(nbv = factor(nbv))
+
+ggplot(df_nbv_freq, aes(x = nbv, y = n)) +
+  geom_col(fill = "#4e79a7", width = 0.7) +
+  geom_text(aes(label = scales::comma(n)), vjust = -0.4, size = 3) +
+  labs(
+    title    = "Fréquence des accidents par nombre de voies",
+    subtitle = "Nombre d'accidents, 2020–2024",
+    x        = "Nombre de voies",
+    y        = "Nombre d'accidents"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+### 2 Gravité des accidents par nombre de voies
+
+```{r nbv_gravite}
+df_nbv_grav <- df_nbv %>%
+  count(nbv, grav_label) %>%
+  group_by(nbv) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(nbv = factor(nbv))
+
+ggplot(df_nbv_grav, aes(x = nbv, y = pct, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Tué"          = "#d62728",
+      "Hospitalisé"  = "#ff7f0e",
+      "Blessé léger" = "#aec7e8",
+      "Indemne"      = "#2ca02c"
+    ),
+    name = "Gravité"
+  ) +
+  labs(
+    title    = "Gravité des accidents par nombre de voies",
+    subtitle = "En % des usagers impliqués, 2020–2024",
+    x        = "Nombre de voies",
+    y        = "Part (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Conclusion
+
+La grande majorité des accidents se produisent sur des routes à **2 voies** (171 153 accidents),
+ce qui reflète la prépondérance de ce type de route dans le réseau routier français.
+
+Contrairement à ce qu'on pourrait supposer, les routes à **2 voies sont les plus dangereuses**
+en termes de gravité, avec la part de tués et d'hospitalisés la plus élevée. Cela s'explique
+par la présence de trafic dans les deux sens sur une même chaussée, favorisant les **collisions frontales**.
+
+À l'inverse, les routes à **6 voies et plus** présentent une gravité nettement plus faible,
+probablement grâce à la séparation physique des sens de circulation et à des infrastructures
+mieux adaptées à la sécurité (autoroutes, voies rapides).
+
+> Le nombre de voies influence donc bien la gravité des accidents : plus la route est large
+> et ses sens séparés, moins les accidents sont mortels.
+
 ### Question Marega 
 #### **Le type de route influence-t-il la gravité des accidents ?**
 
 #### Objectif de l'analyse :
 L'objectif est d'identifier les infrastructures routières où les accidents présentent la plus forte sévérité. En normalisant les données par type de route (proportion), nous cherchons à déterminer si le réseau routier influence intrinsèquement la gravité des chocs, indépendamment du volume de trafic global. Nous attendons de visualiser une disparité dans la répartition des niveaux de gravité, notamment pour repérer les routes affichant les taux de "Tués" ou "Blessés hospitalisés" les plus élevés.
+
 
 ```{r data_loading}
 df_prop <- df %>%
@@ -585,7 +965,6 @@ sf_use_s2(FALSE)
 
 ```{r data_loading}
 # 1. Chargement des données
-df <- read.csv2(here("data", "accidents_2020_2024_PROPRE.csv")) #on utilise here pour toujours être à la racine du projet
 dep_map <- st_read(here("Departements","Departements.shp"), quiet = TRUE)
 
 # 2. Préparation des codes département

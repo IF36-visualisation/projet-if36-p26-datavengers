@@ -781,7 +781,83 @@ ggplot(df_cross, aes(x = col_label, y = manv_label, fill = taux_grave)) +
 > **Limite** : Le taux de gravité mesuré ici est par **usager impliqué**, pas par accident. 
 > Les accidents multi-victimes peuvent biaiser légèrement les comparaisons entre types.
 ```
+# Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ?
 
+## 1 Fréquence des accidents par nombre de voies
+
+```{r nbv_frequence}
+df_nbv <- df_raw %>%
+  select(Num_Acc, nbv, grav) %>%
+  filter(!is.na(nbv), nbv > 0, !is.na(grav), grav > 0) %>%
+  mutate(
+    grav_label = factor(
+      recode(as.character(grav), !!!labels_grav, .default = "Inconnu"),
+      levels = c("Tué", "Hospitalisé", "Blessé léger", "Indemne")
+    )
+  )
+
+df_nbv_freq <- df_nbv %>%
+  distinct(Num_Acc, nbv) %>%
+  count(nbv) %>%
+  mutate(nbv = factor(nbv))
+
+ggplot(df_nbv_freq, aes(x = nbv, y = n)) +
+  geom_col(fill = "#4e79a7", width = 0.7) +
+  geom_text(aes(label = scales::comma(n)), vjust = -0.4, size = 3) +
+  labs(
+    title    = "Fréquence des accidents par nombre de voies",
+    subtitle = "Nombre d'accidents, 2020–2024",
+    x        = "Nombre de voies",
+    y        = "Nombre d'accidents"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+### 2 Gravité des accidents par nombre de voies
+
+```{r nbv_gravite}
+df_nbv_grav <- df_nbv %>%
+  count(nbv, grav_label) %>%
+  group_by(nbv) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(nbv = factor(nbv))
+
+ggplot(df_nbv_grav, aes(x = nbv, y = pct, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Tué"          = "#d62728",
+      "Hospitalisé"  = "#ff7f0e",
+      "Blessé léger" = "#aec7e8",
+      "Indemne"      = "#2ca02c"
+    ),
+    name = "Gravité"
+  ) +
+  labs(
+    title    = "Gravité des accidents par nombre de voies",
+    subtitle = "En % des usagers impliqués, 2020–2024",
+    x        = "Nombre de voies",
+    y        = "Part (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Conclusion
+
+La grande majorité des accidents se produisent sur des routes à **2 voies** (171 153 accidents),
+ce qui reflète la prépondérance de ce type de route dans le réseau routier français.
+
+Contrairement à ce qu'on pourrait supposer, les routes à **2 voies sont les plus dangereuses**
+en termes de gravité, avec la part de tués et d'hospitalisés la plus élevée. Cela s'explique
+par la présence de trafic dans les deux sens sur une même chaussée, favorisant les **collisions frontales**.
+
+À l'inverse, les routes à **6 voies et plus** présentent une gravité nettement plus faible,
+probablement grâce à la séparation physique des sens de circulation et à des infrastructures
+mieux adaptées à la sécurité (autoroutes, voies rapides).
+
+> Le nombre de voies influence donc bien la gravité des accidents : plus la route est large
+> et ses sens séparés, moins les accidents sont mortels.
 
 ### Question Marega 
 #### **Le type de route influence-t-il la gravité des accidents ?**

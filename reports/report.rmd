@@ -528,6 +528,159 @@ Ce graphique montre la répartition des victimes par âge et par sexe. On observ
 
 L'écart entre les genres est flagrant : les hommes sont systématiquement plus touchés que les femmes. Néanmoins, les courbes masculine et féminine évoluent de manière strictement parallèle, augmentant и diminuant proportionnellement sur la quasi-totalité de l'axe. Ce constat montre que malgré la vulnérabilité accrue des hommes, l'évolution du risque routier selon l'âge reste identique pour les deux sexes.
 
+#### À quelles heures de la journée les accidents sont-ils les plus fréquents ?
+
+Pour répondre à cette question, nous analysons la répartition des accidents selon l’heure à laquelle ils se produisent.
+
+Nous proposons deux graphiques complémentaires :
+- diagramme en barres par heure, pour observer précisément les heures où les accidents sont les plus fréquents ;
+- diagramme en barres par période de la journée, pour comparer plus globalement la nuit, le matin, l’après-midi et le soir.
+
+Cette double visualisation permet d’identifier les moments de la journée où le nombre d’accidents est le plus élevé.
+
+#### Création d’un jeu de données des accidents selon l’heure et la période de la journée
+
+```{r}
+df_accidents_heure <- df %>%
+  filter(!is.na(hrmn)) %>%
+  mutate(
+    hrmn_clean = gsub("[^0-9]", "", as.character(hrmn)),
+    hrmn_clean = ifelse(nchar(hrmn_clean) == 3, paste0("0", hrmn_clean), hrmn_clean),
+    heure = as.integer(substr(hrmn_clean, 1, 2)),
+    minutes = as.integer(substr(hrmn_clean, 3, 4))
+  ) %>%
+  filter(
+    !is.na(heure),
+    heure >= 0,
+    heure <= 23
+  ) %>%
+  distinct(Num_Acc, heure, .keep_all = TRUE) %>%
+  group_by(heure) %>%
+  summarise(
+    nb_accidents = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(nb_accidents))
+
+df_accidents_periode <- df %>%
+  filter(!is.na(hrmn)) %>%
+  mutate(
+    hrmn_clean = gsub("[^0-9]", "", as.character(hrmn)),
+    hrmn_clean = ifelse(nchar(hrmn_clean) == 3, paste0("0", hrmn_clean), hrmn_clean),
+    heure = as.integer(substr(hrmn_clean, 1, 2)),
+    
+    periode_journee = case_when(
+      heure >= 0  & heure < 6  ~ "Nuit",
+      heure >= 6  & heure < 12 ~ "Matin",
+      heure >= 12 & heure < 18 ~ "Apres-midi",
+      heure >= 18 & heure <= 23 ~ "Soir",
+      TRUE ~ NA_character_
+    ),
+    
+    periode_journee = factor(
+      periode_journee,
+      levels = c("Nuit", "Matin", "Apres-midi", "Soir")
+    )
+  ) %>%
+  filter(!is.na(periode_journee)) %>%
+  distinct(Num_Acc, periode_journee, .keep_all = TRUE) %>%
+  group_by(periode_journee) %>%
+  summarise(
+    nb_accidents = n(),
+    .groups = "drop"
+  )
+
+
+heure_max <- df_accidents_heure %>%
+  slice_max(nb_accidents, n=1)
+
+periode_max <- df_accidents_periode %>%
+  slice_max(nb_accidents, n = 1)
+
+```
+
+#### Visualisation des accidents selon l’heure de la journée
+```{r}
+ggplot(df_accidents_heure, aes(x=heure, y=nb_accidents)) +
+  geom_col(fill= "#2E86AB") +
+  geom_col(
+    data = heure_max, 
+    aes(x = heure, y = nb_accidents),
+    fill = "#E63946"
+  ) + geom_text(
+    data = heure_max, 
+    aes(
+      x = heure, 
+      y = nb_accidents,
+      label = paste0(heure, "h\n", nb_accidents, " accidents")
+    ),
+    vjust = -0.5,
+    size = 4
+  ) +
+  scale_x_continuous(
+    breaks = 0:23
+  ) +
+  labs(
+    title = "Nombre d'accidents selon l'heure de la journée",
+    subtitle = "L'heure la plus fréquente est mise en évidence en rouge",
+    x = "Heure de la journée",
+    y = "Nombre d'accidents"
+  ) +
+  theme_minimal() + 
+    theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_line(color = "grey90", linewidth = 0.4),
+    panel.grid.major.y = element_line(color = "grey90", linewidth = 0.4)
+  )
+```
+Ce graphique montre l'évolution du nombre d'accidents au fil de la journée. On observe une hausse progressive de la sinistralité dès le début de la matinée (avec un premier pic à 8h), suivie d'une forte augmentation en fin d'après-midi.
+
+L'heure la plus fréquente est mise en évidence en rouge : il s'agit de 17h, moment qui enregistre le pic absolu d'accidents. Cela correspond aux heures de pointe, lorsque les flux de circulation sont les plus denses en raison des trajets retour du travail ou de l'école. À l'inverse, le nombre d'accidents atteint son minimum au milieu de la nuit (entre 3h et 4h).
+
+#### Visualisation des accidents selon les périodes de la journée
+```{r}
+ggplot(df_accidents_periode, aes(x = periode_journee, y = nb_accidents)) +
+  geom_col(fill = "#2E86AB") +
+  geom_col(
+    data = periode_max,
+    aes(x = periode_journee, y = nb_accidents),
+    fill = "#E63946"
+  ) +
+  geom_text(
+    aes(
+      label = nb_accidents
+    ),
+    vjust = -0.4,
+    size = 4
+  ) +
+    annotate(
+    "text",
+    x = 4.8,
+    y = 50000,
+    label = paste(
+      "Périodes :",
+      "- Nuit : 00h–06h",
+      "- Matin : 06h–12h",
+      "- Après-midi : 12h–18h",
+      "- Soir : 18h–24h",
+      sep = "\n"
+    ),
+    hjust = 0,
+    size = 4
+  ) +
+  labs(
+    title = "Nombre d'accidents selon la période de la journée",
+    subtitle = "La période la plus fréquente est mise en évidence en rouge",
+    x = "Période de la journée",
+    y = "Nombre d'accidents"
+  ) +
+  coord_cartesian(xlim = c(1, 6)) +
+  theme_classic()
+```
+Ce graphique montre le nombre d'accidents regroupés par grandes périodes de la journée. On observe des niveaux de sinistralité quasi identiques et très élevés durant le matin et le soir (autour de 72 000 accidents), encadrant une activité routière globalement dense sur l'ensemble de la journée.
+
+La période la plus fréquente est mise en évidence en rouge : il s'agit de l'après-midi (entre 12h et 18h), moment qui enregistre le pic absolu avec 101 381 accidents. Cela correspond aux heures où les flux de circulation cumulés (déplacements professionnels, livraisons, trajets scolaires et départs en fin de journée) sont les plus intenses. À l'inverse, le nombre d'accidents atteint son minimum au milieu de la nuit (entre 00h et 06h) avec 22 593 accidents, en raison d'une baisse radicale du trafic.
+
 ### Question Paul-Louis
 #### Les motos ont-elles un taux de gravité plus élevé ?
 

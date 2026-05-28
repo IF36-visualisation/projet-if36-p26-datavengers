@@ -586,11 +586,18 @@ sf_use_s2(FALSE)
 ```{r data_loading}
 # 1. Chargement des données
 df <- read.csv2(here("data", "accidents_2020_2024_PROPRE.csv")) #on utilise here pour toujours être à la racine du projet
-dep_map <- st_read(here("Departements.shp"), quiet = TRUE)
+dep_map <- st_read(here("Departements","Departements.shp"), quiet = TRUE)
 
-# 2. Préparation des codes (Format "01", "02"...)
-df$dep <- sprintf("%02d", as.numeric(df$dep))
+# 2. Préparation des codes département
+df$dep <- as.character(df$dep)
 dep_map$DDEP_C_COD <- as.character(dep_map$DDEP_C_COD)
+
+# Ajouter un 0 devant les départements 1-9 uniquement
+df$dep <- ifelse(
+  grepl("^[0-9]$", df$dep),
+  paste0("0", df$dep),
+  df$dep
+)
 
 # 3. Agrégation et Jointure (Création de dep_map2)
 acc_dep <- df %>%
@@ -605,14 +612,29 @@ dep_map2 <- dep_map %>%
 ```{r filtering}
 # Filtrage de la carte
 dep_map_metro <- dep_map2 %>% 
-  filter(as.numeric(DDEP_C_COD) < 96) %>%
+  filter(
+    DDEP_C_COD %in% c(sprintf("%02d", 1:95), "2A", "2B")
+  ) %>%
   st_make_valid()
 
 # Filtrage des points + Échantillonnage pour réduire la vitesse d'exécution
 df_sf_metro <- df %>%
-  filter(as.numeric(dep) < 96) %>% #isoler la France métropolitaine 
-  slice_sample(n = 10000) %>% #réduire le nb d'échantillon
-  st_as_sf(coords = c("long", "lat"), crs = 4326) #transformation en objet géographique. crs=4326 --> code standard pour le système de coordonnées utilisé par les gps
+  filter(dep %in% c(sprintf("%02d", 1:95), "2A", "2B")) %>%
+  
+  # conversion des coordonnées texte -> numérique
+  mutate(
+    long = as.numeric(gsub(",", ".", long)),
+    lat = as.numeric(gsub(",", ".", lat))
+  ) %>%
+  
+  # retirer les coordonnées manquantes
+  filter(!is.na(long), !is.na(lat)) %>%
+  
+  # échantillonnage
+  slice_sample(n = 10000) %>%
+  
+  # conversion en objet spatial
+  st_as_sf(coords = c("long", "lat"), crs = 4326)
 ```
 
 ```{r final_map, fig.width=10, fig.height=8}
@@ -641,6 +663,9 @@ tm_view(
   set.view = c(2.21, 46.22, 6) 
 )
 ```
+
+On peut observer sur la carte que la majorité des points se situent bien dans les grandes villes (Paris, Lyon, Marseille et Bordeaux) ce qui est normal vu qu'il y a plus de circulation. Parmi ces grandes villes, Paris sort du lot avec plus de 60 000 accidents entre 2020 et 2024.
+
 
 
 

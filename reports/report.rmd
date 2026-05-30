@@ -1520,6 +1520,102 @@ tm_view(
 
 On peut observer sur la carte que la majorité des points se situent bien dans les grandes villes (Paris, Lyon, Marseille et Bordeaux) ce qui est normal vu qu'il y a plus de circulation. Parmi ces grandes villes, Paris sort du lot avec plus de 60 000 accidents entre 2020 et 2024.
 
+---
+
+### Question Max : Y a-t-il des tendances saisonnières dans les accidents ?
+
+#### Objectif de l'analyse :
+L'objectif est d'observer la répartition du nombre d'accidents tout au long de l'année pour identifier d'éventuelles tendances saisonnières (plus d'accidents en hiver ou en été ?). Nous ajoutons également le niveau de gravité pour voir si la saisonnalité impacte non seulement la fréquence, mais aussi la sévérité des accidents (ex: conditions météorologiques hivernales).
+
+```{r mois_gravite}
+# Préparation des données par mois et gravité
+df_mois <- df %>%
+  filter(!is.na(mois), mois >= 1, mois <= 12,
+         grav %in% c(1, 2, 3, 4)) %>%
+  mutate(
+    mois_label = factor(mois, 
+                        levels = 1:12, 
+                        labels = c("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", 
+                                   "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")),
+    grav_label = factor(grav, 
+                        levels = c(1, 4, 3, 2), 
+                        labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(mois_label, grav_label) %>%
+  summarise(n = n(), .groups = 'drop')
+
+# Création du graphique en barres
+ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  scale_fill_manual(
+    values = c(
+      "Indemne"               = "#cbd5e1",
+      "Blessé léger"          = "#fef08a",
+      "Blessé hospitalisé"    = "#f97316",
+      "Tué"                   = "#b91c1c"
+    ),
+    name = "Niveau de gravité"
+  ) +
+  labs(
+    title    = "Nombre d'accidents et gravité selon le mois",
+    subtitle = "Cumul des années 2020 à 2024",
+    x        = "Mois",
+    y        = "Nombre d'usagers impliqués"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    legend.position = "top"
+  )
+```
+
+#### Analyse des résultats :
+De manière générale, on voit qu'il y a plus d'accidents durant les mois de juin juillet et septembre octobre. Les variations sont plutôt faibles et aucune explications n'est démontrable par la visualisation ci-dessus. Ce que l'on peut faire pour pousser la question plus en détails c'est observer les blessées graves. 
+```{r mois_gravite}
+# Préparation des données par mois et gravité
+df_mois <- df %>%
+  filter(!is.na(mois), mois >= 1, mois <= 12,
+         grav %in% c(2, 3)) %>%
+  mutate(
+    mois_label = factor(mois, 
+                        levels = 1:12, 
+                        labels = c("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", 
+                                   "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")),
+    grav_label = factor(grav, 
+                        levels = c(3, 2), 
+                        labels = c("Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(mois_label, grav_label) %>%
+  summarise(n = n(), .groups = 'drop')
+
+# Création du graphique en barres
+ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  scale_fill_manual(
+    values = c(
+      "Indemne"               = "#cbd5e1",
+      "Blessé léger"          = "#fef08a",
+      "Blessé hospitalisé"    = "#f97316",
+      "Tué"                   = "#b91c1c"
+    ),
+    name = "Niveau de gravité"
+  ) +
+  labs(
+    title    = "Nombre d'accidents et gravité selon le mois",
+    subtitle = "Cumul des années 2020 à 2024",
+    x        = "Mois",
+    y        = "Nombre d'usagers impliqués"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    legend.position = "top"
+  )
+```
 
 
 

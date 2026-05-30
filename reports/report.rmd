@@ -954,7 +954,7 @@ labels_grav <- c(
   "4" = "Blessé léger"
 )
 
-df <- df_raw %>%
+df_collision <- df_raw %>%
   select(manv, col, grav) %>%
   filter(
     !is.na(manv), manv > 0,
@@ -969,7 +969,7 @@ df <- df_raw %>%
     grave = grav %in% c(2, 3)
   )
 
-glimpse(df)
+glimpse(df_collision)
 ```
 
 ---
@@ -979,7 +979,7 @@ glimpse(df)
 ### 3.1 Répartition de la gravité par type de collision
 
 ```{r col_gravite_stacked}
-df_col <- df %>%
+df_col <- df_collision %>%
   count(col_label, grav_label) %>%
   group_by(col_label) %>%
   mutate(pct = n / sum(n) * 100) %>%
@@ -1013,7 +1013,7 @@ ggplot(df_col, aes(x = col_label, y = pct, fill = grav_label)) +
 ### 3.2 Taux d'accidents graves (tués + hospitalisés) par type de collision
 
 ```{r col_taux_grave}
-df_col_grave <- df %>%
+df_col_grave <- df_collision %>%
   group_by(col_label) %>%
   summarise(
     total       = n(),
@@ -1046,7 +1046,7 @@ ggplot(df_col_grave, aes(x = col_label, y = taux_grave, fill = taux_grave)) +
 ### 4.1 Les 10 manœuvres les plus fréquentes
 
 ```{r manv_frequence}
-top10_manv <- df %>%
+top10_manv <- df_collision %>%
   count(manv_label, sort = TRUE) %>%
   slice_head(n = 10) %>%
   pull(manv_label)
@@ -1055,7 +1055,7 @@ top10_manv <- df %>%
 ### 4.2 Taux de gravité pour les 10 manœuvres les plus fréquentes
 
 ```{r manv_taux_grave}
-df_manv_grave <- df %>%
+df_manv_grave <- df_collision %>%
   filter(manv_label %in% top10_manv) %>%
   group_by(manv_label) %>%
   summarise(
@@ -1085,7 +1085,7 @@ ggplot(df_manv_grave, aes(x = manv_label, y = taux_grave, fill = taux_grave)) +
 ### 4.3 Répartition de la gravité par manœuvre (barres empilées)
 
 ```{r manv_gravite_stacked}
-df_manv_stack <- df %>%
+df_manv_stack <- df_collision %>%
   filter(manv_label %in% top10_manv) %>%
   count(manv_label, grav_label) %>%
   group_by(manv_label) %>%
@@ -1134,7 +1134,7 @@ ggplot(df_manv_stack, aes(x = manv_label, y = pct, fill = grav_label)) +
 On s'intéresse au taux de gravité pour les combinaisons les plus fréquentes.
 
 ```{r croisement_heatmap}
-df_cross <- df %>%
+df_cross <- df_collision %>%
   filter(manv_label %in% top10_manv) %>%
   group_by(manv_label, col_label) %>%
   summarise(

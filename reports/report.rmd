@@ -2,8 +2,8 @@
 title: "Projet IF36"
 subtitle: Analyse des accidents de la route en France
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ## Présentation du projet
@@ -1572,28 +1572,97 @@ ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
 ```
 
 #### Analyse des résultats :
-De manière générale, on voit qu'il y a plus d'accidents durant les mois de juin juillet et septembre octobre. Les variations sont plutôt faibles et aucune explications n'est démontrable par la visualisation ci-dessus. Ce que l'on peut faire pour pousser la question plus en détails c'est observer les blessées graves. 
-```{r mois_gravite}
-# Préparation des données par mois et gravité
-df_mois <- df %>%
-  filter(!is.na(mois), mois >= 1, mois <= 12,
-         grav %in% c(2, 3)) %>%
-  mutate(
-    mois_label = factor(mois, 
-                        levels = 1:12, 
-                        labels = c("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", 
-                                   "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")),
-    grav_label = factor(grav, 
-                        levels = c(3, 2), 
-                        labels = c("Blessé hospitalisé", "Tué"))
-  ) %>%
-  group_by(mois_label, grav_label) %>%
-  summarise(n = n(), .groups = 'drop')
+De manière générale, on voit qu'il y a plus d'accidents durant les mois de juin juillet et septembre octobre. En été (Juillet/Août), les conditions météorologiques sont clémentes, ce qui entraîne un sentiment de sécurité et une vitesse plus élevée. Les trajets de vacances étant plus nombreux aussi sont peut-être une cause plosible de l'augmentation d'accidents. Malheureusement, nous aurions bien voulu étudier plus en détails si la localisation de l'accident etant proche ou non du lieu de domicile influe sur le nombre d'accidents. Nous aurions pu alors valider l'hypotèse des départs en vancances. Ces données entant sensible, elle ne sont pas rendues publiques.
+---
 
-# Création du graphique en barres
-ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
-  geom_col(width = 0.7) +
-  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+### Question : Existe-t-il un seuil (âge ou vitesse) où la gravité explose ?
+
+#### Objectif de l'analyse :
+L'objectif est d'explorer la corrélation entre l'âge du conducteur, la vitesse maximale autorisée sur le lieu de l'accident, et la gravité des blessures. Nous utilisons une **carte de chaleur (Heatmap)** pour observer le **taux de gravité** (pourcentage d'accidents graves) pour chaque combinaison d'âge et de vitesse. 
+
+```{r age_vitesse_heatmap}
+# Préparation des données pour la heatmap
+df_heat <- df %>%
+  filter(place == 1, # Conducteurs uniquement
+         !is.na(an_nais), an_nais > 1900,
+         !is.na(vma), vma > 0, vma <= 130,
+         !vma %in% c(20, 25, 40, 60)) %>% # On retire les vitesses rares (20, 40)
+  mutate(age = an - an_nais) %>%
+  filter(age >= 18, age < 90) %>%
+  mutate(
+    # On crée des tranches d'âge de 5 ans pour plus de lisibilité
+    age_bin = cut(age, breaks = seq(15, 90, by = 5), right = FALSE, 
+                  labels = paste(seq(15, 85, by = 5), seq(19, 89, by = 5), sep="-")),
+    # On simplifie les vitesses en facteurs
+    vma_grp = factor(vma)
+  ) %>%
+  group_by(age_bin, vma_grp) %>%
+  summarise(
+    total = n(),
+    taux_grave = mean(grav %in% c(2, 3)) * 100, # % de Tués + Hospitalisés
+  ) %>%
+  # On retire les combinaisons très rares (moins de 30 cas) pour éviter le bruit statistique
+  filter(total > 30)
+
+# Création de la Heatmap
+ggplot(df_heat, aes(x = age_bin, y = vma_grp, fill = taux_grave)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  scale_fill_gradient(low = "#fee0d2", high = "#a50026", name = "% Grave\n(Tués+Hosp.)") +
+  labs(
+    title    = "Taux de gravité par âge et vitesse autorisée",
+    subtitle = "Pourcentage de blessés graves ou tués parmi les conducteurs impliqués",
+    x        = "Tranches d'âge du conducteur",
+    y        = "Vitesse maximale autorisée (km/h)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank(),
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+  )
+```
+
+#### Analyse des résultats :
+On remarque aisément une ligne plus rouge lorsque la vitesse maximale autorisée est de 80 km/h. Cela peut s'expliquer par le fait que ces routes sont souvent des routes départementales qui sont généralements dépourvues de barrières de sécurité et sur les quelles il est courant de dépasser la vitesse limite. Elles sont parfois synueuses et males entretenues. A l'inverse, les lignes des routes en agglomération (vitesse limité à 50 km/h ou moins) sont très claires, ce qui confirme que les accidents en agglomérations sont moins grave quelque soit l'age. Enfin, à partir de 90km/h on peut observer que les personnes agées à partir de 65 ans ont des accidents plus graves.
+
+---
+
+### Question : Les équipements de sécurité (ceinture, casque) réduisent-ils la gravité ?
+
+#### Objectif de l'analyse :
+L'objectif est d'évaluer l'efficacité des équipements de sécurité de base (ceinture pour les voitures, casque pour les deux-roues motorisés) sur la survie et la gravité des blessures lors d'un accident. Pour cela, nous comparons la proportion d'accidents graves lorsque l'équipement est utilisé par rapport aux cas où il ne l'est pas.
+
+```{r securite_gravite}
+# Préparation des données pour l'analyse des équipements de sécurité
+df_secu <- df %>%
+  filter(
+    grav %in% c(1, 2, 3, 4),
+    catv %in% c(7, 30, 31, 32, 33, 34) # 7 = Voiture, 30-34 = Motos/Scooters
+  ) %>%
+  mutate(
+    type_vehicule = ifelse(catv == 7, "Voiture", "Moto"),
+    
+    # On vérifie si l'équipement est présent (Ceinture pour la voiture, Casque ou Casque+Gants pour la moto)
+    porte_protection = ifelse(
+      (type_vehicule == "Voiture" & secu1 == 1) | (type_vehicule == "Moto" & secu1 %in% c(2, 7)),
+      "Equipé",
+      "Non équipé / Inconnu"
+    ),
+    
+    grav_label = factor(grav, 
+                        levels = c(1, 4, 3, 2), 
+                        labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(type_vehicule, porte_protection, grav_label) %>%
+  summarise(n = n(), .groups = 'drop') %>%
+  group_by(type_vehicule, porte_protection) %>%
+  mutate(pct = n / sum(n))
+
+# Création du graphique en barres empilées avec facettes
+ggplot(df_secu, aes(x = porte_protection, y = pct, fill = grav_label)) +
+  geom_col(width = 0.6) +
+  facet_wrap(~ type_vehicule, scales = "free_x") + 
+  scale_y_continuous(labels = scales::percent_format()) +
   scale_fill_manual(
     values = c(
       "Indemne"               = "#cbd5e1",
@@ -1601,21 +1670,55 @@ ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
       "Blessé hospitalisé"    = "#f97316",
       "Tué"                   = "#b91c1c"
     ),
-    name = "Niveau de gravité"
+    name = "Gravité"
   ) +
   labs(
-    title    = "Nombre d'accidents et gravité selon le mois",
-    subtitle = "Cumul des années 2020 à 2024",
-    x        = "Mois",
-    y        = "Nombre d'usagers impliqués"
+    title    = "Impact des équipements de sécurité sur la gravité des blessures",
+    subtitle = "Comparaison de la sévérité selon le port de la protection (Ceinture ou Casque)",
+    x        = "Port de l'équipement de protection",
+    y        = "Proportion des usagers"
   ) +
   theme_minimal(base_size = 11) +
   theme(
+    strip.text = element_text(face = "bold", size = 12, color = "#0f172a"),
     plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
     plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    panel.grid.major.x = element_blank(),
     legend.position = "top"
   )
 ```
 
+#### Analyse des résultats :
+Ce graphique etait sensé montrer l'importance des équipement de sécurités quant à la gravité des accidents. On voit nettement que la ceintue de sécurité sur les voitures reduit considérablement le risque d'accident grave. Par contre, pour les motos il est étrangement égale en terme de gravité de porter des protections ou non. Cela nous amène a préciser que la proportion de personne ayant eu un accident et n'étant pas munis de la ceinture de sécurité pour les voitures ou du casque pour les motos est très faible.
 
+### Synthèse : Taux d'utilisation des équipements de sécurité
+
+Afin de compléter l'analyse précédente, voici la répartition globale des usagers impliqués selon qu'ils étaient équipés ou non au moment de l'accident.
+
+```{r taux_equipement}
+df_taux <- df_secu %>%
+  group_by(type_vehicule, porte_protection) %>%
+  summarise(n = sum(n), .groups = 'drop') %>%
+  group_by(type_vehicule) %>%
+  mutate(pct = n / sum(n))
+
+ggplot(df_taux, aes(x = type_vehicule, y = pct, fill = porte_protection)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = scales::percent(pct, accuracy = 0.1)), 
+            position = position_dodge(width = 0.7), vjust = -0.5, fontface = "bold") +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1.1)) +
+  scale_fill_manual(values = c("Equipé" = "#2a9d8f", "Non équipé / Inconnu" = "#e76f51")) +
+  labs(
+    title = "Taux d'utilisation des équipements de sécurité",
+    subtitle = "Proportion d'usagers équipés (ceinture/casque) vs non équipés",
+    x = "Catégorie de véhicule",
+    y = "Part des usagers",
+    fill = "État de l'équipement"
+  ) +
+  theme_minimal()
+```
+
+Comme on peut le voir, le taux d'équipement déclaré est très élevé dans les deux catégories, dépassant les 80% pour les voitures et approchant les 90% pour les motos. Cette prédominance massive du groupe "Équipé" explique pourquoi les comparaisons avec le groupe "Non équipé" doivent être manipulées avec précaution, les effectifs de ce dernier étant beaucoup plus réduits et potentiellement sujets à des biais. En effet, le port d'équipement de sécurité tel que la ceinture ou le casque et gants en moto sont obligatoires. Ainsi, les rares personnes ne mettant pas leur équipement de sécurité savent qu'ils sont dans l'illégalité. On peut supposer que les trajets faits sans ceinture en voiture par exemple sont de très courtes distance en roulant à des vitesses réduites. 
+
+Il faut donc interpréter ces résultats avec attention pour éviter toute erreur de compréhension.
 

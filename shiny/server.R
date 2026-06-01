@@ -215,4 +215,62 @@ output$plot2 <- renderPlotly({
       yanchor = "bottom"
     )
 })
+
+  # LOGIQUE ONGLET 3
+  output$plot3 <- renderPlotly({
+    req(df)
+    
+    # Filtrage des données de base pour les conducteurs
+    df_heat <- df %>%
+      filter(place == 1, 
+             an %in% input$filtre_annee_heat,
+             !is.na(an_nais), an_nais > 1900,
+             !is.na(vma), vma > 0, vma <= 130,
+             !vma %in% c(20, 25, 40, 60)) %>%
+      mutate(age = an - an_nais) %>%
+      filter(age >= 18, age < 90)
+    
+    # Filtre Sexe
+    if (input$filtre_sexe_heat != "all") {
+      df_heat <- df_heat %>% filter(sexe == as.numeric(input$filtre_sexe_heat))
+    }
+    
+    # Filtre Véhicule
+    if (input$filtre_veh_heat == "voiture") {
+      df_heat <- df_heat %>% filter(catv == 7)
+    } else if (input$filtre_veh_heat == "moto") {
+      df_heat <- df_heat %>% filter(catv %in% c(30, 31, 32, 33, 34))
+    }
+    
+    # Agrégation
+    df_plot <- df_heat %>%
+      mutate(
+        age_bin = cut(age, breaks = seq(15, 90, by = 5), right = FALSE, 
+                      labels = paste(seq(15, 85, by = 5), seq(19, 89, by = 5), sep="-")),
+        vma_grp = factor(vma)
+      ) %>%
+      group_by(age_bin, vma_grp) %>%
+      summarise(
+        total = n(),
+        taux_grave = mean(grav %in% c(2, 3)) * 100,
+        .groups = "drop"
+      ) %>%
+      filter(total >= input$seuil_n)
+    
+    # Création du ggplot
+    p <- ggplot(df_plot, aes(x = age_bin, y = vma_grp, fill = taux_grave,
+                            text = paste("Tranche d'âge :", age_bin,
+                                         "<br>Vitesse :", vma_grp, "km/h",
+                                         "<br>Taux de gravité :", round(taux_grave, 1), "%",
+                                         "<br>Nombre de cas (n) :", total))) +
+      geom_tile(color = "white") +
+      scale_fill_gradient(low = "#fee0d2", high = "#a50026", name = "% Grave") +
+      labs(x = "Tranches d'âge du conducteur",
+           y = "Vitesse autorisée (km/h)") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    
+    ggplotly(p, tooltip = "text")
+  })
 }
+

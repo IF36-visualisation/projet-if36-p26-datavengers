@@ -88,24 +88,40 @@ page_navbar(
   
   # ONGLET 3
   nav_panel(
-    title = "Analyse 3", 
-    icon = icon("chart-pie"),
+    title = "Âge vs Vitesse", 
+    icon = icon("gauge-high"),
     
     layout_sidebar(
       sidebar = sidebar(
-        title = "Contrôles - Visu 3",
-        # Exemple de cases à cocher pour la troisième visualisation
+        title = "Filtres Risque",
         checkboxGroupInput(
-          inputId = "choix_tab3", 
-          label = "Variables à afficher :", 
-          choices = c("Var X", "Var Y", "Var Z"),
-          selected = "Var X"
+          inputId = "filtre_annee_heat",
+          label = "Année(s) :",
+          choices = 2020:2024,
+          selected = 2020:2024
+        ),
+        selectInput(
+          inputId = "filtre_sexe_heat",
+          label = "Sexe du conducteur :",
+          choices = c("Tous" = "all", "Masculin" = 1, "Féminin" = 2),
+          selected = "all"
+        ),
+        selectInput(
+          inputId = "filtre_veh_heat",
+          label = "Type de véhicule :",
+          choices = c("Tous" = "all", "Voiture" = "voiture", "Moto" = "moto"),
+          selected = "all"
+        ),
+        sliderInput(
+          inputId = "seuil_n",
+          label = "Seuil de représentativité (n min) :",
+          min = 5, max = 100, value = 30, step = 5
         )
       ),
       card(
         full_screen = TRUE,
-        card_header("Troisième Visualisation Interactive"),
-        card_body(plotOutput("plot3"))
+        card_header("Heatmap du taux de gravité (Âge du conducteur vs Vitesse autorisée)"),
+        card_body(plotly::plotlyOutput("plot3"))
       )
     )
   ),

@@ -2,8 +2,8 @@
 title: "Projet IF36"
 subtitle: Analyse des accidents de la route en France
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ## Présentation du projet
@@ -36,9 +36,8 @@ Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_d
 | **id_usager** | Identifiant Usager | VARCHAR | Identifiant unique de l'usager. |
 | **annee_dataset** | Année Source | INTEGER | Année du fichier d'origine. |
 | **adr** | Adresse | VARCHAR | Adresse postale simplifiée. |
-
-*Note : Ces variables peuvent être surpprimer car inutiles dans l'annalyse*
-
+---
+_Note : Ces variables peuvent être surpprimer car inutiles dans l'annalyse_
 ---
 
 ### 2. Variables temporelles (5 variables)
@@ -81,7 +80,7 @@ Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_d
 | **manv** | Manœuvre | INTEGER | 1:Sans changement, 15:Tourne G... |
 | **motor** | Motorisation | INTEGER | 1:Hydrocarbures, 3:Élec, 4:Hydrogène. |
 
-*Note : Là aussi des variables sont inutiles et peuvent donc être surpprimées*
+_Note : Là aussi des variables sont inutiles et peuvent donc être surpprimées_
 
 ---
 
@@ -120,8 +119,10 @@ Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_d
 | **surf** | État surface | INTEGER | 1:Normale, 2:Mouillée, 7:Verglacée. |
 | **infra** | Aménagement | INTEGER | 1:Souterrain, 3:Échangeur, 5:Pont. |
 | **vma** | Vitesse autorisée | INTEGER | Vitesse max en km/h. |
+
 ---
-*Note : Les valeurs `-1` ou `0` indiquent une donnée non renseignée ou non applicable.*
+
+_Note : Les valeurs `-1` ou `0` indiquent une donnée non renseignée ou non applicable._
 
 ```{r setup, include=FALSE}
 library(knitr)
@@ -133,6 +134,14 @@ library(dplyr)
 library(sf)
 library(here)
 
+# Configuration globale des graphiques pour le PDF
+knitr::opts_chunk$set(
+  fig.align = "center",
+  out.width = "100%",    # Utiliser 100% de la largeur du texte disponible
+  fig.width = 6,         # Réduire la largeur interne de 7 à 6 pour mieux tenir
+  fig.height = 4,
+  fig.pos = "H"
+)
 
 cleaned_dataset <- "../data/accidents_2020_2024_PROPRE.csv"
 input_zip <- "../data/accidents_2020_2024.zip"
@@ -526,7 +535,7 @@ ggplot(df_victimes_age_sexe, aes(x = classe_age, y = nb_victimes, fill = sexe_la
 ```
 Ce graphique montre la répartition des victimes par âge et par sexe. On observe une surreprésentation massive des jeunes, avec un pic critique chez les 15-24 ans, suivi d'une baisse progressive vers les tranches d'âge supérieures.
 
-L'écart entre les genres est flagrant : les hommes sont systématiquement plus touchés que les femmes. Néanmoins, les courbes masculine et féminine évoluent de manière strictement parallèle, augmentant и diminuant proportionnellement sur la quasi-totalité de l'axe. Ce constat montre que malgré la vulnérabilité accrue des hommes, l'évolution du risque routier selon l'âge reste identique pour les deux sexes.
+L'écart entre les genres est flagrant : les hommes sont systématiquement plus touchés que les femmes. Néanmoins, les courbes masculine et féminine évoluent de manière strictement parallèle, augmentant et diminuant proportionnellement sur la quasi-totalité de l'axe. Ce constat montre que malgré la vulnérabilité accrue des hommes, l'évolution du risque routier selon l'âge reste identique pour les deux sexes.
 
 #### À quelles heures de la journée les accidents sont-ils les plus fréquents ?
 
@@ -1341,7 +1350,7 @@ La **nuit avec éclairage non allumé** présente également une gravité élev�
 L'objectif est d'identifier les infrastructures routières où les accidents présentent la plus forte sévérité. En normalisant les données par type de route (proportion), nous cherchons à déterminer si le réseau routier influence intrinsèquement la gravité des chocs, indépendamment du volume de trafic global. Nous attendons de visualiser une disparité dans la répartition des niveaux de gravité, notamment pour repérer les routes affichant les taux de "Tués" ou "Blessés hospitalisés" les plus élevés.
 
 
-```{r data_loading}
+```{r data_loading_marega}
 df_prop <- df %>%
   # Filtrage des valeurs valides uniquement
   filter(catr %in% c(1, 2, 3, 4, 5, 6, 7, 9), 
@@ -1427,7 +1436,7 @@ Pour les autoroutes, c'est le résultat le plus intéressant de notre analyse. M
 
 Pour répondre à cette question, nous avons décidé de réaliser un choroplète avec la librairie tmap qui est plus adapté que ggplot2 et permet une visualisation interractive. De plus avec ('tm_dots'), nous pourrons voir la distribution des points représentant les accidents dans toute la France.
 
-```{r setup, message=FALSE}
+```{r setup_tmap, message=FALSE}
 library(sf)
 library(dplyr)
 library(tmap)
@@ -1572,12 +1581,15 @@ ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
 ```
 
 #### Analyse des résultats :
+
 De manière générale, on voit qu'il y a plus d'accidents durant les mois de juin juillet et septembre octobre. En été (Juillet/Août), les conditions météorologiques sont clémentes, ce qui entraîne un sentiment de sécurité et une vitesse plus élevée. Les trajets de vacances étant plus nombreux aussi sont peut-être une cause plosible de l'augmentation d'accidents. Malheureusement, nous aurions bien voulu étudier plus en détails si la localisation de l'accident etant proche ou non du lieu de domicile influe sur le nombre d'accidents. Nous aurions pu alors valider l'hypotèse des départs en vancances. Ces données entant sensible, elle ne sont pas rendues publiques.
+
 ---
 
 ### Question : Existe-t-il un seuil (âge ou vitesse) où la gravité explose ?
 
 #### Objectif de l'analyse :
+
 L'objectif est d'explorer la corrélation entre l'âge du conducteur, la vitesse maximale autorisée sur le lieu de l'accident, et la gravité des blessures. Nous utilisons une **carte de chaleur (Heatmap)** pour observer le **taux de gravité** (pourcentage d'accidents graves) pour chaque combinaison d'âge et de vitesse. 
 
 ```{r age_vitesse_heatmap}
@@ -1623,13 +1635,16 @@ ggplot(df_heat, aes(x = age_bin, y = vma_grp, fill = taux_grave)) +
 ```
 
 #### Analyse des résultats :
+
 On remarque aisément une ligne plus rouge lorsque la vitesse maximale autorisée est de 80 km/h. Cela peut s'expliquer par le fait que ces routes sont souvent des routes départementales qui sont généralements dépourvues de barrières de sécurité et sur les quelles il est courant de dépasser la vitesse limite. Elles sont parfois synueuses et males entretenues. A l'inverse, les lignes des routes en agglomération (vitesse limité à 50 km/h ou moins) sont très claires, ce qui confirme que les accidents en agglomérations sont moins grave quelque soit l'age. Enfin, à partir de 90km/h on peut observer que les personnes agées à partir de 65 ans ont des accidents plus graves.
 
----
+Dans la **shiny app**, nous avons décidé de présenter cette carte de chaleur de manière interactive et nous avons rendu possible le fait de filtrer les accidents par hommes ou femmes ou voiture et deux roues. Ces options sont très pertinentes puisqu'elles permettent de mettre en évidence que les jeunes conducteurs hommes font des accidents en moyenne plus graves que les jeunes conductrices filles. Le graphique est cliquable et on peut précisément voir le taux d'accidents graves. 
+
 
 ### Question : Les équipements de sécurité (ceinture, casque) réduisent-ils la gravité ?
 
 #### Objectif de l'analyse :
+
 L'objectif est d'évaluer l'efficacité des équipements de sécurité de base (ceinture pour les voitures, casque pour les deux-roues motorisés) sur la survie et la gravité des blessures lors d'un accident. Pour cela, nous comparons la proportion d'accidents graves lorsque l'équipement est utilisé par rapport aux cas où il ne l'est pas.
 
 ```{r securite_gravite}
@@ -1689,6 +1704,7 @@ ggplot(df_secu, aes(x = porte_protection, y = pct, fill = grav_label)) +
 ```
 
 #### Analyse des résultats :
+
 Ce graphique etait sensé montrer l'importance des équipement de sécurités quant à la gravité des accidents. On voit nettement que la ceintue de sécurité sur les voitures reduit considérablement le risque d'accident grave. Par contre, pour les motos il est étrangement égale en terme de gravité de porter des protections ou non. Cela nous amène a préciser que la proportion de personne ayant eu un accident et n'étant pas munis de la ceinture de sécurité pour les voitures ou du casque pour les motos est très faible.
 
 ### Synthèse : Taux d'utilisation des équipements de sécurité

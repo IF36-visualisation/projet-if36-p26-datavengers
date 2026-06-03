@@ -894,20 +894,13 @@ Le graphique montre très clairement que les accidents de moto sont proportionne
 
 # Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ?
 
-## 1. Chargement des librairies et des données
+## 1. Chargement des librairies
 
 ```{r librairies}
 library(tidyverse)
 library(scales)
 library(ggplot2)
 library(forcats)
-```
-
-```{r chargement}
-df_raw <- read_csv2(
-  "../data/accidents_2020_2024_PROPRE.csv",
-  show_col_types = FALSE
-)
 ```
 
 ---
@@ -963,7 +956,7 @@ labels_grav <- c(
   "4" = "Blessé léger"
 )
 
-df_collision <- df_raw %>%
+df_collision <- df %>%
   select(manv, col, grav) %>%
   filter(
     !is.na(manv), manv > 0,
@@ -1198,7 +1191,7 @@ ggplot(df_cross, aes(x = col_label, y = manv_label, fill = taux_grave)) +
 ## 1 Fréquence des accidents par nombre de voies
 
 ```{r nbv_frequence}
-df_nbv <- df_raw %>%
+df_nbv <- df %>%
   select(Num_Acc, nbv, grav) %>%
   filter(!is.na(nbv), nbv > 0, !is.na(grav), grav > 0) %>%
   mutate(
@@ -1277,7 +1270,7 @@ mieux adaptées à la sécurité (autoroutes, voies rapides).
 L'objectif est de comparer la répartition des niveaux de gravité des accidents selon les conditions d'éclairage. La variable `lum` distingue la pleine journée, l'aube/crépuscule, et plusieurs situations nocturnes (avec ou sans éclairage). Nous cherchons à déterminer si l'absence de lumière naturelle est associée à des accidents proportionnellement plus mortels.
 
 ```{r lum_data_prep}
-df_lum <- df_raw %>%
+df_lum <- df %>%
   filter(lum %in% c(1, 2, 3, 4, 5),
          grav %in% c(1, 2, 3, 4)) %>%
   mutate(

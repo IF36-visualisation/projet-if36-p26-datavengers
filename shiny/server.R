@@ -272,5 +272,55 @@ output$plot2 <- renderPlotly({
     
     ggplotly(p, tooltip = "text")
   })
+  
+  # LOGIQUE ONGLET 4 — Motos vs Voitures
+  output$plot4 <- renderPlotly({
+    
+    df_plot <- df %>%
+      filter(
+        catv %in% c(7, 30, 31, 32, 33, 34),
+        an %in% input$filtre_annee_moto,
+        grav %in% c(1, 2, 3, 4)
+      ) %>%
+      mutate(
+        Type_Vehicule = ifelse(catv == 7, "Voiture", "Moto"),
+        Gravite_Label = factor(
+          case_when(
+            grav == 1 ~ "Indemne",
+            grav == 2 ~ "Tué",
+            grav == 3 ~ "Blessé Hosp.",
+            grav == 4 ~ "Blessé Léger"
+          ),
+          levels = c("Indemne", "Blessé Léger", "Blessé Hosp.", "Tué")
+        )
+      )
+    
+    p <- ggplot(df_plot, aes(x = Type_Vehicule, fill = Gravite_Label,
+                             text = paste("Type :", Type_Vehicule,
+                                          "<br>Gravité :", Gravite_Label))) +
+      geom_bar(position = input$mode_moto) +
+      scale_fill_manual(
+        values = c(
+          "Indemne"      = "#1a9641",
+          "Blessé Léger" = "#fdae61",
+          "Blessé Hosp." = "#d7191c",
+          "Tué"          = "#000000"
+        )
+      ) +
+      labs(
+        title    = "Gravité des accidents par type de véhicule",
+        subtitle = paste("Années :", paste(sort(input$filtre_annee_moto), collapse = ", ")),
+        x        = "Catégorie de véhicule",
+        y        = if (input$mode_moto == "fill") "Proportion des accidents" else "Nombre d'usagers",
+        fill     = "Gravité"
+      ) +
+      theme_minimal()
+    
+    if (input$mode_moto == "fill") {
+      p <- p + scale_y_continuous(labels = scales::percent)
+    }
+    
+    ggplotly(p, tooltip = "text")
+  })
 }
 

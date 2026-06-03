@@ -129,23 +129,35 @@ page_navbar(
   
   # ONGLET 4
   nav_panel(
-    title = "Analyse 4", 
-    icon = icon("project-diagram"),
+    title = "Motos vs Voitures",
+    icon = icon("motorcycle"),
     
     layout_sidebar(
       sidebar = sidebar(
-        title = "Contrôles - Visu 4",
-        # Exemple d'entrée texte ou autre filtre pour le quatrième onglet
+        title = "Filtres",
+        
+        checkboxGroupInput(
+          inputId = "filtre_annee_moto",
+          label = "Année(s) :",
+          choices = 2020:2024,
+          selected = 2020:2024
+        ),
+        
         radioButtons(
-          inputId = "Vue_tab4", 
-          label = "Type de vue :", 
-          choices = c("Globale", "Détaillée")
+          inputId = "mode_moto",
+          label = "Mode d'affichage :",
+          choices = c(
+            "Proportions (% relatif)" = "fill",
+            "Nombres absolus"         = "stack"
+          ),
+          selected = "fill"
         )
       ),
+      
       card(
         full_screen = TRUE,
-        card_header("Quatrième Visualisation Interactive"),
-        card_body(plotOutput("plot4"))
+        card_header("Répartition de la gravité : Voiture vs Moto"),
+        card_body(plotly::plotlyOutput("plot4"))
       )
     )
   )

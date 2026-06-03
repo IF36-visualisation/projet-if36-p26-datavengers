@@ -1519,9 +1519,35 @@ tm_view(
   set.view = c(2.21, 46.22, 6) 
 )
 ```
+#### Analyse des résultats :
 
 On peut observer sur la carte que la majorité des points se situent bien dans les grandes villes (Paris, Lyon, Marseille et Bordeaux) ce qui est normal vu qu'il y a plus de circulation. Parmi ces grandes villes, Paris sort du lot avec plus de 60 000 accidents entre 2020 et 2024.
 
+
+#### **Comment évolue le nombre total d'accidents en 2020 et 2024 ?**
+
+```{r}
+df_evolution <- df %>%
+  group_by(an) %>%
+  summarise(nb_accidents = n(), .groups = "drop")
+
+p_evo <- ggplot(df_evolution, aes(x = as.numeric(an), y = nb_accidents)) +
+  geom_line(color = "#2c3e50", linewidth = 1) +
+  geom_point(color = "#e74c3c", size = 3) +
+  scale_x_continuous(breaks = seq(2020, 2024, by = 1)) +
+  theme_minimal() +
+  labs(
+    title = "Évolution du nombre total d'accidents (2020 - 2024)",
+    x = "Année",
+    y = "Nombre total d'accidents"
+  )
+
+ggplotly(p_evo, tooltip = c("x", "y"))
+```
+
+#### Analyse des résultats :
+
+L’analyse du graphique met en évidence une dynamique temporelle en trois phases distinctes. On observe tout d'abord un niveau minimal en 2020 (autour de 105 000 accidents), ce qui valide l'impact direct des confinements de la crise sanitaire sur la réduction de l'exposition au risque routier. S'ensuit une phase de reprise partielle en 2021 et 2022 où le volume fluctue entre 120 000 et 126 000 cas. La rupture majeure de la série temporelle intervient entre 2022 et 2023, marquée par une augmentation brutale pour atteindre un plateau historique à près de 160 000 accidents. Ce saut quantitatif important ne traduit pas nécessairement une dégradation soudaine du comportement des usagers, mais plutôt un effet de bord méthodologique : il s'agit vraisemblablement de l'intégration de nouvelles bases de données ou d'un changement de périmètre dans l'enregistrement des accidents par les forces de l'ordre (comme le passage au reporting complet des pré-déclarations). Enfin, la stabilisation stricte observée entre 2023 et 2024 confirme l'établissement d'un nouveau régime permanent pour notre système d'indicateurs.
 ---
 
 ### Question Max : Y a-t-il des tendances saisonnières dans les accidents ?

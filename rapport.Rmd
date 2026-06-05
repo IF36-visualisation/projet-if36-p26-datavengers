@@ -1,136 +1,99 @@
 ---
-title: "Rapport de Projet IF36"
-author: "Equipe Grodatadmorv : "
+title: "GroDataDmorv — Analyse de l'équilibrage de Pokémon"
+author: "Équipe Grodatadmorv"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
 output:
-  html_document: default
-  pdf_document: default
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    fig_width: 9
+    fig_height: 6
+    number_sections: true
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+header-includes:
+  - \usepackage{geometry}
+  - \geometry{top=2cm, left=2cm, bottom=2cm, right=2cm}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.align = "center", out.width = "95%"
+)
 ```
 
-## Introduction
+```{r preparation, include=FALSE}
+source("analyses/00_preparation.R")
+```
 
-### Pokémon
+# Introduction
 
-Pokémon Rouge et Vert sont des jeux de rôle japonais (J-RPG) sortis initialement en 1996 au Japon. L'objectif du jeu est de capturer, élever et faire s'affronter des créatures, les Pokémon, dans des combats au tour par tour. Pour plus d'informations à ce sujet, se référer à [cette page Wikipédia](https://fr.wikipedia.org/wiki/Système_de_jeu_de_Pokémon) ou à [la page Poképédia dédiée](https://www.pokepedia.fr/Combat_Pokémon)  au système de combat.
+## Pokémon
 
-### Pourquoi faire de la visu sur Pokémon ?
+Pokémon Rouge et Vert sont des jeux de rôle japonais (J-RPG) sortis initialement en 1996 au Japon. L'objectif du jeu est de capturer, élever et faire s'affronter des créatures, les Pokémon, dans des combats au tour par tour. Pour plus d'informations à ce sujet, se référer à [cette page Wikipédia](https://fr.wikipedia.org/wiki/Système_de_jeu_de_Pokémon) ou à [la page Poképédia dédiée](https://www.pokepedia.fr/Combat_Pokémon) au système de combat.
 
-Premièrement, parce que nous aimons ces jeux. Cette raison se suffirait presque à elle-même si Pokémon n'était pas aussi riche dans ses systèmes de jeu et dans son volet compétitif qu'il ne l'est et qu'il ne l'est devenu. Nous n'arborderons pas ou très peu dans cette analyse les produits dérivés du jeu (cartes, animés, peluches, mangas, transport aérien ([oui oui](https://www.ana.co.jp/fr/fr/the-ana-experience/pikachujet/))…), qui constituent en réalité le cœur de la stratégie pour la licence la plus lucrative de l'Histoire. Les jeux et leurs mécaniques seuls constituent déjà un sujet extrêmement vaste que nous tâcherons toutefois de couvrir dans toute sa diversité.
+## Pourquoi faire de la visu sur Pokémon ?
 
-## Données
+Premièrement, parce que nous aimons ces jeux. Cette raison se suffirait presque à elle-même si Pokémon n'était pas aussi riche dans ses systèmes de jeu et dans son volet compétitif qu'il ne l'est et qu'il ne l'est devenu. Nous n'aborderons pas ou très peu dans cette analyse les produits dérivés du jeu (cartes, animés, peluches, mangas, transport aérien ([oui oui](https://www.ana.co.jp/fr/fr/the-ana-experience/pikachujet/))…), qui constituent en réalité le cœur de la stratégie pour la licence la plus lucrative de l'Histoire. Les jeux et leurs mécaniques seuls constituent déjà un sujet extrêmement vaste que nous tâcherons toutefois de couvrir dans toute sa diversité.
+
+# Données
 
 Nous proposons d'étudier l'équilibrage de Pokémon sous deux angles complémentaires :
 
-- angle RPG : ce que le jeu propose (stats, attaques, types, talents, répartition des créatures dans l'espace de jeu, etc.)
-- angle compétitif : ce qu'en font les joueurs en stratégie Pokémon (usages, combinaisons, movesets, etc.)
+- **angle RPG** : ce que le jeu propose (stats, attaques, types, talents, répartition des créatures dans l'espace de jeu, etc.)
+- **angle compétitif** : ce qu'en font les joueurs en stratégie Pokémon (usages, combinaisons, movesets, etc.)
 
 L'idée est de croiser ces deux niveaux pour mieux comprendre si les Pokémon performants en compétitif le sont parce que leurs caractéristiques de base sont plus favorables, ou parce que le contexte du métagame amplifie certains profils.
 
-### Sources
+## Sources
 
 Nos deux sources sont les [statistiques de Smogon](https://smogon.com/stats/), développeurs du simulateur de jeu open-source [*Pokémon Showdown*](https://play.pokemonshowdown.com), et [PokeAPI](https://github.com/pokeapi/pokeapi), une API open-source qui donne des données générales sur les Pokémon.
 
-#### 1) Statistiques Smogon (usage/métagame)
+### Statistiques Smogon (usage/métagame)
 
-| Champ | Valeur |
-|---|---|
-| Nom | Statistiques Smogon (usage/métagame) |
-| Fichier | `data/gen1ou-0.txt` |
-| Format | `txt` (texte semi-structuré par blocs) |
-| Dimensions | `5 346 lignes`, `107 blocs Pokémon` |
+Données mensuelles de décembre 2014 à aujourd'hui, couvrant `r length(unique(smogon_usage_monthly$date))` mois et `r length(unique(smogon_usage_monthly$pokemon))` Pokémon en Gen 1 OU. Les données incluent :
 
-| Variable | Type | Description |
-|---|---|---|
-| `nom du Pokémon` | Catégorielle nominale | - |
-| `raw count` | Quantitative discrète | - |
-| `viability ceiling` | Quantitative discrète (ordinale) | Score de viabilité plafond |
-| `% usage moves` | Quantitative continue | - |
-| `% teammates` | Quantitative continue | - |
-| `checks/counters score` | Quantitative continue | Indicateurs d'efficacité défensive/offensive |
+- **Usage** : taux d'utilisation et nombre brut de sélections
+- **Moves** : taux d'utilisation de chaque attaque par Pokémon
+- **Teammates** : corrélations de sélection entre coéquipiers
+- **Leads** : Pokémon envoyés en premier dans les combats
+- **Checks/Counters** : scores d'efficacité défensive entre paires
 
-#### 2) PokeAPI - Table Pokémon
+### PokeAPI
 
-| Champ | Valeur |
-|---|---|
-| Nom | PokeAPI - Table Pokémon |
-| Fichier | `data/pokemon.csv` |
-| Format | `csv` |
-| Dimensions | `1 350 observations`, `8 variables` |
+Base de données statique couvrant `r nrow(pokeapi)` espèces de Pokémon (toutes générations), incluant les statistiques de base, types, couleurs, formes, habitats, taux de capture, et chaînes d'évolution.
 
-| Variable | Type | Description |
-|---|---|---|
-| `id` | Quantitative discrète | - |
-| `identifier` | Textuelle / catégorielle nominale | - |
-| `species_id` | Catégorielle | - |
-| `height` | Quantitative discrète | - |
-| `weight` | Quantitative discrète | - |
-| `base_experience` | Quantitative discrète | - |
-| `order` | Quantitative discrète | - |
-| `is_default` | Binaire | `0` / `1` |
+\newpage
 
-#### 3) PokeAPI - Table des stats
+# Analyse des données
 
-| Champ | Valeur |
-|---|---|
-| Nom | PokeAPI - Table des stats |
-| Fichier | `data/pokemon_stats.csv` |
-| Format | `csv` |
-| Dimensions | `8 100 observations`, `4 variables` |
+## Stratégie
 
-| Variable | Type | Description |
-|---|---|---|
-| `pokemon_id` | Catégorielle encodée (ID) | - |
-| `stat_id` | Catégorielle encodée (ID) | - |
-| `base_stat` | Quantitative discrète | - |
-| `effort` | Quantitative discrète | - |
+```{r child_q01, child = 'analyses/q01_usage.Rmd'}
+```
 
-#### 4) PokeAPI - Tables des types
+\newpage
 
-| Champ | Valeur |
-|---|---|
-| Nom | PokeAPI - Table des types Pokémon |
-| Fichier | `data/pokemon_types.csv` |
-| Format | `csv` |
-| Dimensions | `2 115 observations`, `3 variables` |
+## Équilibrage & Game Design
 
-| Variable | Type | Description |
-|---|---|---|
-| `pokemon_id` | Catégorielle encodée (ID) | - |
-| `type_id` | Catégorielle encodée (ID) | - |
-| `slot` | Ordinale discrète | `1` = type principal, `2` = type secondaire |
+```{r child_q10, child = 'analyses/q10_doubles_types.Rmd'}
+```
 
-| Champ | Valeur |
-|---|---|
-| Nom | PokeAPI - Table des noms de types |
-| Fichier | `data/type_names.csv` |
-| Format | `csv` |
-| Dimensions | `210 observations`, `3 variables` |
+\newpage
 
-| Variable | Type | Description |
-|---|---|---|
-| `type_id` | Catégorielle encodée (ID) | - |
-| `local_language_id` | Catégorielle encodée (ID) | - |
-| `name` | Textuelle | - |
+## Conception du bestiaire
 
+```{r child_q18, child = 'analyses/q18_stereotypes.Rmd'}
+```
 
-#### À propos des données
+\newpage
 
-Sous-groupes naturels dans les données :
+# Limites
 
-- par génération
-- par format compétitif (OU, UU, formats spécifiques à une généraiton, etc.)
-- par type
-
-
-Nous nous réservons la possibilité d'enrichir les données présentées ici avec l'entièreté de la base de données de Smogon (les données sont dans le même format, mais pour différents formats de jeux et à différentes dates) ainsi qu'avec les autres fichiers de la base de données de PokeAPI (dans le but de plus simplement croiser les données)
-
-## Analyse des données
-
-### Stratégie
-
-### Équilibrage & Game Design
-
-### Conception du bestiaire
+- **Hétérogénéité entre générations :** les statistiques, les attaques, les mécaniques et parfois même le type des Pokémon évoluant d'une génération à l'autre, croiser plusieurs générations sans les filtrer strictement peut engendrer des incohérences.
+- **Biais de popularité :** l'usage joueur ne mesure pas toujours la puissance intrinsèque d'un Pokémon.
+- **Complexité d'agrégation :** évaluer mathématiquement un Pokémon pour la visualisation implique de faire l'impasse sur des détails contextuels ; la viabilité se base fortement sur les spécificités uniques des attaques et des talents (Ability), ce qui est difficilement réductible à des statistiques globales sans perte sémantique.
+- **Nature complexe de l'angle RPG :** des paramètres majeurs de la difficulté ("IA" de jeu, utilisation d'objets curatifs par les PNJ, composition des arènes) ne sont pas quantifiables via nos données actuelles.

@@ -1,0 +1,93 @@
+## Question 18 : Stéréotypes de conception des Pokémon
+
+> Existe-t-il des stéréotypes de conception entre l'apparence des Pokémon (couleur principale, forme physique) et leur type ou leurs statistiques ? Par exemple : les Pokémon rouges sont-ils généralement de type Feu ? Les Pokémon à forme humanoïde ont-ils une attaque plus élevée ?
+
+**Hypothèse :** Game Freak suit des "recettes" visuelles stables et utilise des archétypes pour construire son bestiaire. On s'attend à des corrélations couleur / type (rouge = Feu, bleu = Eau…) et des tendances liées à la forme (formes massives = défensives, formes bipèdes = offensives).
+
+*Note : cette analyse est réalisée sur les Pokémon de la 1ère génération uniquement, avec correction des types passés.*
+
+---
+
+### Visualisation 1 — Couleur de conception vs Type principal
+
+```{r q18_visu1, echo = FALSE, fig.width = 9, fig.height = 5}
+pokeapi_gen1 %>%
+  count(type1_name, color_fr) %>%
+  group_by(type1_name) %>%
+  mutate(prop = n / sum(n)) %>%
+  ungroup() %>%
+  ggplot(aes(x = reorder(type1_name, -prop, sum), y = prop, fill = color_fr)) +
+  geom_col(width = 0.8, colour = "white", linewidth = 0.3) +
+  scale_fill_manual(values = palette_couleurs, name = "Couleur principale") +
+  scale_y_continuous(labels = percent_format()) +
+  labs(
+    title    = "Distribution des couleurs de conception par type principal",
+    subtitle = "Gen 1 · chaque barre = 100 % des Pokémon du type",
+    x = "Type principal", y = "Proportion"
+  ) +
+  theme_pokemon +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    panel.grid.major = element_line(colour = "grey90")
+  )
+```
+
+**Interprétation :** On remarque qu'effectivement, des couleurs semblent correspondre à des types. Les Pokémon de type Eau sont bleus, les types Poison sont violets, les types Électrique sont jaunes, les types Plante sont verts, etc. Les types Dragon et Spectre ne sont représentés que par une famille chacun, respectivement celles de Dracolosse et d'Ectoplasma, d'où la faible variété de couleurs. On remarque en outre que le marron est majoritaire chez plusieurs types : Combat, Sol, Normal, Roche. Cela peut s'expliquer par la présence du marron dans les éléments naturels de la vie réelle (terre, pelages, peaux). Ce graphique montre qu'effectivement, certaines couleurs sont intuitivement liées aux types, ce qui est peut-être une manière d'indiquer au joueur le type d'un monstre rencontré pour la première fois.
+
+---
+
+### Visualisation 2 — Forme physique vs Statistiques offensives/défensives
+
+```{r q18_visu2, echo = FALSE, fig.width = 9, fig.height = 6}
+pokeapi_gen1 %>%
+  filter(!is.na(Attack), !is.na(Defense)) %>%
+  group_by(shape_en) %>%
+  summarise(med_atk = median(Attack), med_def = median(Defense), n = n()) %>%
+  filter(n >= 5) %>%
+  mutate(ratio = med_atk / med_def) %>%
+  ggplot(aes(x = med_def, y = med_atk, size = n, colour = ratio)) +
+  geom_point(alpha = 0.85) +
+  geom_text_repel(aes(label = shape_en), size = 3.5, fontface = "bold", colour = "grey20",
+                  box.padding = 0.5, point.padding = 0.3,
+                  min.segment.length = 0.2, seed = 42) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = "grey60", linewidth = 0.8) +
+  scale_colour_gradient2(low = "#6495ED", mid = "grey90", high = "#E8334A",
+                         midpoint = 1, name = "Ratio Atk/Def") +
+  scale_size_continuous(range = c(4, 14), name = "Nb. d'espèces") +
+  labs(
+    title    = "Profil offensif/défensif médian par forme physique",
+    subtitle = "Gen 1 · Ligne pointillée : équilibre parfait Attaque = Défense",
+    x = "Défense médiane", y = "Attaque médiane"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(colour = "grey45", size = 10)
+  )
+```
+
+**Interprétation :** Les formes au-dessus de la diagonale ont un profil offensif (Attaque > Défense), celles en-dessous un profil défensif. Les Humanoïdes sont effectivement offensifs, conformément à l'intuition (Mackogneur, Alakazam…). Les Ailés semblent être de loin les plus offensifs, et les monstres de forme "Balle" sont d'assez loin les plus défensifs (Crustabri, Smogo, Électrode…). Ici aussi, comme pour les couleurs et les types, certaines formes sont associées à des stéréotypes liés aux statistiques.
+
+### Visualisation 3 — Heatmap couleur × type (effectifs)
+
+```{r q18_visu3, echo = FALSE, fig.width = 9, fig.height = 6}
+pokeapi_gen1 %>%
+  count(color_fr, type1_name) %>%
+  ggplot(aes(x = type1_name, y = color_fr, fill = n)) +
+  geom_tile(colour = "white", linewidth = 0.5) +
+  geom_text(aes(label = n), size = 3, colour = "white", fontface = "bold") +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1, name = "Nb. d'espèces") +
+  labs(
+    title    = "Nombre d'espèces par couleur × type principal",
+    subtitle = "Gen 1 · Chaque cellule = nombre de Pokémon de cette couleur et de ce type",
+    x = "Type principal", y = "Couleur de conception"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x   = element_text(angle = 40, hjust = 1),
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(colour = "grey45", size = 10)
+  )
+```
+
+**Interprétation :** En valeurs absolues, on voit directement combien de Pokémon partagent une couleur et un type donnés. Les cellules vides (0) révèlent des associations inexistantes, tandis que les cellules foncées confirment des concentrations fortes (ex: beaucoup de Pokémon bleus de type Eau). Cette heatmap est complémentaire à la Visualisation 1, qui elle est normalisée par type.

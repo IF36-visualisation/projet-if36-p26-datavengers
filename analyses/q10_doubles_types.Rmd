@@ -1,0 +1,73 @@
+## Question 10 : Quels sont les doubles types les plus représentés dans le jeu ?
+
+Il est très courant pour un Pokémon d'avoir un double type. Cependant, malgré les plus de 1000 Pokémon existants, certains doubles types n'ont toujours pas été utilisés (comme par exemple le double type Insecte-Dragon). Les développeurs ont-ils des favoris, avec des types disposant de plus d'associations que d'autres ?
+
+### Graphique n°1 : Nombre de doubles types existants par type
+
+```{r q10_bar, echo = FALSE, fig.width = 9, fig.height = 5}
+# On isole les Pokémon à double type (qui ont un type2)
+double_typed <- pokeapi %>%
+  filter(!is.na(type2_id)) %>%
+  select(id, type1_id, type2_id)
+
+# Normaliser les paires (min, max) pour ne pas compter A-B et B-A séparément
+double_pairs <- double_typed %>%
+  mutate(
+    min_type = pmin(type1_id, type2_id),
+    max_type = pmax(type1_id, type2_id)
+  ) %>%
+  distinct(min_type, max_type)
+
+# Compter combien de types distincts sont associés à chaque type
+count_by_type <- bind_rows(
+  double_pairs %>% select(type_id = min_type),
+  double_pairs %>% select(type_id = max_type)
+) %>%
+  count(type_id) %>%
+  left_join(type_names_en, by = "type_id") %>%
+  arrange(desc(n))
+
+ggplot(count_by_type, aes(x = reorder(type_name, -n), y = n)) +
+  geom_col(fill = "#735797", width = 0.6) +
+  geom_text(aes(label = n), vjust = -0.3, size = 3.5, fontface = "bold") +
+  labs(
+    title    = "Les types et le nombre de doubles types associés",
+    subtitle = "Chaque barre = nombre de types distincts avec lesquels ce type a été combiné",
+    x = "Type", y = "Nombre de doubles types existants"
+  ) +
+  theme_pokemon
+```
+
+On voit que la plupart des types sont au-dessus de 15, donc proches du maximum de 17 associations possibles (18 types − soi-même). Cependant, certains types restent en retrait : le type Fée, introduit plus tardivement que les 17 autres, et le type Glace, qui semble boudé par Game Freak. Il est également étonnant de trouver le type Feu aussi bas, puisque c'est un type de Pokémon de départ très apprécié des joueurs.
+
+### Graphique n°2 : Heatmap des doubles types et leur nombre de représentants
+
+```{r q10_heatmap, echo = FALSE, fig.width = 10, fig.height = 8}
+# Toutes les occurrences de doubles types (pas seulement les paires uniques)
+double_occurrences <- double_typed %>%
+  mutate(
+    type1 = pmin(type1_id, type2_id),
+    type2 = pmax(type1_id, type2_id)
+  ) %>%
+  count(type1, type2) %>%
+  left_join(type_names_en %>% rename(type1_name = type_name), by = c("type1" = "type_id")) %>%
+  left_join(type_names_en %>% rename(type2_name = type_name), by = c("type2" = "type_id"))
+
+ggplot(double_occurrences, aes(x = type1_name, y = type2_name, fill = n)) +
+  geom_tile(colour = "white", linewidth = 0.5) +
+  geom_text(aes(label = n), size = 3, colour = "white", fontface = "bold") +
+  scale_fill_distiller(direction = 1, name = "Nb. d'espèces") +
+  labs(
+    title    = "Les doubles types et leur nombre de représentants",
+    subtitle = "Chaque cellule = nombre de Pokémon de ce double type",
+    x = "Type 1", y = "Type 2"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x   = element_text(angle = 40, hjust = 1),
+    plot.title    = element_text(face = "bold"),
+    plot.subtitle = element_text(colour = "grey45", size = 10)
+  )
+```
+
+Sur cette visualisation, on voit que certains doubles types sont beaucoup plus représentés que d'autres. Le type Normal-Vol est de loin le plus présent, ce qui s'explique notamment par l'absence de Pokémon de type Vol pur, souvent remplacés par des types Normal-Vol. On remarque aussi des concentrations notables pour Eau-Sol, Herbe-Poison, ou encore Insecte-Vol.

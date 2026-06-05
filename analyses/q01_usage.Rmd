@@ -1,0 +1,79 @@
+## Question 1 : Quels Pokémon sont les plus utilisés, et lesquels sont sous-représentés dans le métagame étudié ?
+
+En utilisant le dataset Smogon (Gen 1 OU, agrégé sur l'ensemble des mois disponibles de décembre 2014 à aujourd'hui), nous pouvons identifier les Pokémon les plus et les moins joués dans le métagame compétitif de la première génération.
+
+### Graphique n°1 : Top 15 des Pokémon les plus représentés
+
+```{r q01_top15, echo = FALSE, fig.width = 9, fig.height = 5}
+top15 <- smogon_usage %>%
+  slice_max(raw_count_total, n = 15)
+
+ggplot(top15, aes(x = reorder(pokemon, raw_count_total), y = raw_count_total)) +
+  geom_col(fill = "#6390F0", width = 0.7) +
+  geom_text(aes(label = format(raw_count_total, big.mark = " ")),
+            hjust = -0.1, size = 3.2, fontface = "bold") +
+  coord_flip() +
+  scale_y_continuous(labels = label_number(big.mark = " "),
+                     expand = expansion(mult = c(0, 0.15))) +
+  labs(
+    title    = "Top 15 des Pokémon les plus utilisés (Gen 1 OU)",
+    subtitle = "Nombre total d'utilisations agrégé sur l'ensemble des mois",
+    x = NULL, y = "Nombre total d'utilisations"
+  ) +
+  theme_pokemon
+```
+
+On peut remarquer que parmi les 15 Pokémon les plus joués, on retrouve majoritairement des évolutions finales. Tauros et Snorlax dominent très largement le métagame, suivis d'Exeggutor et de Chansey. L'écart entre le top 4 et le reste du top 15 est considérable, ce qui indique un métagame centralisé autour de quelques menaces incontournables.
+
+### Graphique n°2 : Top 15 des Pokémon les plus sous-représentés
+
+```{r q01_bottom15, echo = FALSE, fig.width = 9, fig.height = 5}
+bottom15 <- smogon_usage %>%
+  filter(raw_count_total > 0) %>%
+  slice_min(raw_count_total, n = 15)
+
+ggplot(bottom15, aes(x = reorder(pokemon, -raw_count_total), y = raw_count_total)) +
+  geom_col(fill = "#E8334A", width = 0.7) +
+  geom_text(aes(label = format(raw_count_total, big.mark = " ")),
+            hjust = -0.1, size = 3.2, fontface = "bold") +
+  coord_flip() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(
+    title    = "Top 15 des Pokémon les plus sous-représentés (Gen 1 OU)",
+    subtitle = "Pokémon avec le plus faible nombre total d'utilisations",
+    x = NULL, y = "Nombre total d'utilisations"
+  ) +
+  theme_pokemon
+```
+
+Parmi les 15 Pokémon les moins joués, on retrouve presqu'exclusivement des premières évolutions (Machoke, Pidgey, Rattata, Zubat, Abra). La différence d'utilisation entre eux est très faible (quelques utilisations d'écart), ce qui contraste fortement avec les écarts massifs observés dans le top 15.
+
+### Graphique n°3 : Distribution de l'utilisation des Pokémon
+
+```{r q01_distribution, echo = FALSE, fig.width = 10, fig.height = 5}
+p_hist <- ggplot(smogon_usage, aes(x = raw_count_total)) +
+  geom_histogram(bins = 40, fill = "#6390F0", colour = "white", alpha = 0.85) +
+  scale_x_continuous(labels = label_number(big.mark = " ")) +
+  labs(
+    title = "Distribution du nombre total d'utilisations",
+    subtitle = "La majorité des Pokémon sont très peu joués",
+    x = "Nombre total d'utilisations", y = "Nombre de Pokémon"
+  ) +
+  theme_pokemon
+
+p_box <- ggplot(smogon_usage, aes(y = raw_count_total)) +
+  geom_boxplot(fill = "#6390F0", alpha = 0.7, width = 0.4) +
+  scale_y_continuous(labels = label_number(big.mark = " ")) +
+  labs(
+    title = "Boxplot de l'utilisation",
+    subtitle = "Les valeurs extrêmes confirment la centralisation",
+    y = "Nombre total d'utilisations"
+  ) +
+  theme_pokemon +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+
+library(patchwork)
+p_hist + p_box + plot_layout(widths = c(2, 1))
+```
+
+Sur ces deux graphiques, on voit clairement que l'immense majorité des Pokémon ne sont presque pas utilisés, et qu'une minorité (~10 Pokémon) est jouée presque tout le temps. La distribution est extrêmement asymétrique (right-skewed), ce qui est typique des métagames compétitifs : quelques Pokémon dominent, tandis que la plupart sont relégués à un usage anecdotique.

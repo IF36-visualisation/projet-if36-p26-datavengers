@@ -1,0 +1,426 @@
+## Question 14 : Comment sont répartis les « bons » Pokémon dans l'espace de jeu ?
+
+On cherche ici à confronter deux dimensions du jeu : la performance compétitive des Pokémon, mesurée par leur usage moyen en Gen 1 OU sur Smogon, et leur accessibilité dans Pokémon Rouge, Bleu ou Jaune. Un Pokémon très fort mais obtenu très tardivement, très rarement, ou dans une zone optionnelle ne joue pas le même rôle dans la progression qu'un Pokémon rencontré naturellement pendant l'aventure.
+
+La carte ci-dessous utilise un mapping manuel des zones de Kanto sur `img/kanto.png`. La densité est calculée à partir d'un score par zone : on additionne l'usage Smogon moyen des Pokémon du top retenu accessibles dans chaque lieu, directement ou via une pré-évolution.
+
+Ce score est ensuite diffusé autour de la zone pour obtenir une densité spatiale. La couleur affichée utilise `sqrt(score)` et un plafonnement au 95e percentile afin de rendre visibles les zones moyennes sans laisser quelques zones très fortes écraser toute l'échelle. La rareté reste affichée dans les détails, mais elle ne pondère pas la couleur : sinon les rencontres fixes à 100 % dominent artificiellement l'échelle.
+
+```{r q14_data, include = FALSE}
+q14_version_id <- 1
+q14_top_n <- 20
+q14_img_width <- 2048
+q14_img_height <- 1448
+q14_project_root <- if (file.exists("data/manual/kanto_zone_mapping.csv")) "." else ".."
+
+q14_path <- function(...) {
+  file.path(q14_project_root, ...)
+}
+
+q14_version_label <- c(
+  `1` = "Rouge",
+  `2` = "Bleu",
+  `3` = "Jaune"
+)[as.character(q14_version_id)]
+
+normalize_pokemon_name <- function(x) {
+  x %>%
+    str_to_lower() %>%
+    str_replace_all("[^a-z0-9]+", "-") %>%
+    str_replace_all("(^-|-$)", "")
+}
+
+format_location_label <- function(x) {
+  x %>%
+    str_replace("^kanto-", "") %>%
+    str_replace_all("-", " ") %>%
+    str_to_title()
+}
+
+rgba <- function(hex, alpha) {
+  rgb_value <- grDevices::col2rgb(hex)
+  sprintf(
+    "rgba(%s,%s,%s,%.2f)",
+    rgb_value[1, 1], rgb_value[2, 1], rgb_value[3, 1], alpha
+  )
+}
+
+kanto_zone_mapping <- read_csv(q14_path("data/manual/kanto_zone_mapping.csv"), show_col_types = FALSE) %>%
+  mutate(
+    location_label = format_location_label(location_identifier),
+    x0 = x,
+    x1 = x + width,
+    y0 = y,
+    y1 = y + height,
+    plot_y0 = q14_img_height - y - height,
+    plot_y1 = q14_img_height - y,
+    center_x = x + width / 2,
+    center_y = y + height / 2,
+    plot_center_y = q14_img_height - y - height / 2
+  )
+
+versions_kanto <- read_csv(q14_path("data/pokeapi/versions.csv"), show_col_types = FALSE) %>%
+  select(version_id = id, version_identifier = identifier)
+
+locations_kanto <- read_csv(q14_path("data/pokeapi/locations.csv"), show_col_types = FALSE) %>%
+  select(location_id = id, region_id, location_identifier = identifier)
+
+location_areas_kanto <- read_csv(q14_path("data/pokeapi/location_areas.csv"), show_col_types = FALSE) %>%
+  select(location_area_id = id, location_id, area_identifier = identifier)
+
+encounter_slots_kanto <- read_csv(q14_path("data/pokeapi/encounter_slots.csv"), show_col_types = FALSE) %>%
+  select(encounter_slot_id = id, encounter_method_id, rarity)
+
+encounter_methods_kanto <- read_csv(q14_path("data/pokeapi/encounter_methods.csv"), show_col_types = FALSE) %>%
+  select(encounter_method_id = id, encounter_method = identifier)
+
+pokemon_species_chains <- read_csv(q14_path("data/pokeapi/pokemon_species.csv"), show_col_types = FALSE) %>%
+  select(species_id = id, evolution_chain_id)
+
+pokemon_identifiers <- read_csv(q14_path("data/pokeapi/pokemon.csv"), show_col_types = FALSE) %>%
+  filter(is_default == 1) %>%
+  transmute(
+    pokemon_id = id,
+    pokemon_identifier = identifier,
+    pokemon_key = normalize_pokemon_name(identifier),
+    species_id
+  ) %>%
+  left_join(pokemon_species_chains, by = "species_id")
+
+smogon_ranked <- smogon_usage %>%
+  mutate(
+    pokemon_key = normalize_pokemon_name(pokemon),
+    smogon_rank = row_number()
+  )
+
+smogon_top_family <- smogon_ranked %>%
+  filter(smogon_rank <= q14_top_n) %>%
+  left_join(
+    pokemon_identifiers %>%
+      select(pokemon_key, top_evolution_chain_id = evolution_chain_id),
+    by = "pokemon_key"
+  ) %>%
+  filter(!is.na(top_evolution_chain_id)) %>%
+  transmute(
+    top_pokemon = pokemon,
+    smogon_rank,
+    usage_pct_mean,
+    top_evolution_chain_id
+  )
+
+kanto_encounters <- read_csv(q14_path("data/pokeapi/encounters.csv"), show_col_types = FALSE) %>%
+  filter(version_id %in% c(1, 2, 3)) %>%
+  left_join(location_areas_kanto, by = "location_area_id") %>%
+  left_join(locations_kanto, by = "location_id") %>%
+  filter(region_id == 1) %>%
+  left_join(versions_kanto, by = "version_id") %>%
+  left_join(encounter_slots_kanto, by = "encounter_slot_id") %>%
+  left_join(encounter_methods_kanto, by = "encounter_method_id") %>%
+  left_join(pokemon_identifiers, by = "pokemon_id")
+
+q14_location_pokemon <- kanto_encounters %>%
+  filter(version_id == q14_version_id) %>%
+  inner_join(smogon_top_family, by = c("evolution_chain_id" = "top_evolution_chain_id")) %>%
+  group_by(location_identifier, top_pokemon, smogon_rank, usage_pct_mean) %>%
+  summarise(
+    min_level = min(min_level, na.rm = TRUE),
+    max_rarity = max(rarity, na.rm = TRUE),
+    encounter_methods = paste(sort(unique(encounter_method)), collapse = ", "),
+    encountered_pokemon = paste(sort(unique(pokemon_identifier)), collapse = ", "),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    density_weight = usage_pct_mean,
+    source_label = if_else(
+      normalize_pokemon_name(top_pokemon) == normalize_pokemon_name(encountered_pokemon),
+      top_pokemon,
+      paste0(top_pokemon, " via ", encountered_pokemon)
+    )
+  )
+
+q14_good_by_location <- q14_location_pokemon %>%
+  arrange(location_identifier, smogon_rank, top_pokemon) %>%
+  group_by(location_identifier) %>%
+  summarise(
+    n_good = n_distinct(top_pokemon),
+    best_rank = min(smogon_rank, na.rm = TRUE),
+    best_usage = max(usage_pct_mean, na.rm = TRUE),
+    density_score = sum(density_weight, na.rm = TRUE),
+    min_level = min(min_level, na.rm = TRUE),
+    max_rarity = max(max_rarity, na.rm = TRUE),
+    good_pokemon = paste(unique(top_pokemon), collapse = ", "),
+    source_details = paste(unique(source_label), collapse = "; "),
+    encounter_methods = paste(sort(unique(encounter_methods)), collapse = ", "),
+    .groups = "drop"
+  )
+
+q14_map_data <- kanto_zone_mapping %>%
+  left_join(q14_good_by_location, by = "location_identifier") %>%
+  mutate(
+    n_good = replace_na(n_good, 0L),
+    best_rank = if_else(is.na(best_rank), NA_integer_, as.integer(best_rank)),
+    best_usage = replace_na(best_usage, 0),
+    density_score = replace_na(density_score, 0),
+    min_level = if_else(is.na(min_level), NA_integer_, as.integer(min_level)),
+    max_rarity = replace_na(max_rarity, 0),
+    good_pokemon = replace_na(good_pokemon, "Aucun Pokémon du top retenu"),
+    source_details = replace_na(source_details, "Aucune famille du top retenu"),
+    encounter_methods = replace_na(encounter_methods, "-"),
+    line_width = case_when(
+      n_good == 0 ~ 0.25,
+      max(n_good) > 1 ~ scales::rescale(n_good, to = c(0.7, 2.2), from = c(1, max(n_good))),
+      TRUE ~ 1.1
+    ),
+    line_color = if_else(n_good == 0, "rgba(60,60,60,0.12)", "rgba(90,0,35,0.58)"),
+    hover = paste0(
+      "<b>", location_label, "</b>",
+      "<br>Score usage : ", round(density_score, 3),
+      "<br>Familles top ", q14_top_n, " : ", n_good,
+      "<br>Meilleur rang : ", if_else(is.na(best_rank), "-", as.character(best_rank)),
+      "<br>Niveau min. / rareté max. : ",
+      if_else(is.na(min_level), "-", as.character(min_level)), " / ", max_rarity,
+      "<br><b>Accès :</b> ", source_details
+    )
+  )
+
+q14_density_x <- seq(0, q14_img_width, length.out = 170)
+q14_density_y <- seq(0, q14_img_height, length.out = 120)
+q14_density_z <- matrix(0, nrow = length(q14_density_y), ncol = length(q14_density_x))
+
+q14_scored_zones <- q14_map_data %>%
+  filter(density_score > 0)
+
+for (i in seq_len(nrow(q14_scored_zones))) {
+  zone <- q14_scored_zones[i, ]
+  sigma_x <- max(zone$width / 2, 95)
+  sigma_y <- max(zone$height / 2, 95)
+  dx <- matrix(
+    rep(q14_density_x - zone$center_x, each = length(q14_density_y)),
+    nrow = length(q14_density_y)
+  )
+  dy <- matrix(
+    rep(q14_density_y - zone$plot_center_y, times = length(q14_density_x)),
+    nrow = length(q14_density_y)
+  )
+
+  q14_density_z <- q14_density_z +
+    zone$density_score * exp(-0.5 * ((dx / sigma_x)^2 + (dy / sigma_y)^2))
+}
+
+q14_density_grid <- expand.grid(
+  x = q14_density_x,
+  y = q14_density_y
+) %>%
+  mutate(
+    density = as.vector(q14_density_z),
+    density_display = sqrt(density)
+  )
+
+q14_density_display_z <- sqrt(q14_density_z)
+q14_density_display_max <- stats::quantile(
+  q14_density_display_z[q14_density_display_z > 0],
+  probs = 0.95,
+  na.rm = TRUE
+)
+```
+
+### Graphique n°1 : Densité spatiale de l'usage Smogon
+
+```{r q14_map_interactive, echo = FALSE, fig.width = 12, fig.height = 8}
+if (knitr::is_html_output() && requireNamespace("plotly", quietly = TRUE)) {
+  kanto_img_source <- paste0(
+    "data:image/png;base64,",
+    base64enc::base64encode(q14_path("img/kanto.png"))
+  )
+
+  p <- plotly::plot_ly() %>%
+    plotly::add_heatmap(
+      x = q14_density_x,
+      y = q14_density_y,
+      z = q14_density_display_z,
+      customdata = q14_density_z,
+      zmin = 0,
+      zmax = q14_density_display_max,
+      colorscale = list(
+        list(0.00, "rgba(255,255,255,0.00)"),
+        list(0.15, "rgba(255,230,130,0.20)"),
+        list(0.45, "rgba(255,145,60,0.45)"),
+        list(0.75, "rgba(232,51,74,0.65)"),
+        list(1.00, "rgba(100,0,45,0.82)")
+      ),
+      showscale = TRUE,
+      colorbar = list(
+        title = list(text = "Couleur<br>sqrt(score)", side = "right"),
+        thickness = 11,
+        len = 0.46,
+        x = 0.965,
+        y = 0.55,
+        tickfont = list(size = 10),
+        titlefont = list(size = 11)
+      ),
+      hovertemplate = paste0(
+        "<b>Densité spatiale</b>",
+        "<br>Score lissé : %{customdata:.3f}",
+        "<br>Couleur : sqrt(score)",
+        "<extra></extra>"
+      ),
+      opacity = 0.8
+    )
+
+  for (i in seq_len(nrow(q14_map_data))) {
+    zone <- q14_map_data[i, ]
+    p <- plotly::add_trace(
+      p,
+      x = c(zone$x0, zone$x1, zone$x1, zone$x0, zone$x0),
+      y = c(zone$plot_y0, zone$plot_y0, zone$plot_y1, zone$plot_y1, zone$plot_y0),
+      type = "scatter",
+      mode = "lines",
+      fill = "toself",
+      fillcolor = "rgba(255,255,255,0.01)",
+      line = list(color = zone$line_color, width = zone$line_width),
+      text = zone$hover,
+      hoveron = "fills",
+      hovertemplate = "%{text}<extra></extra>",
+      name = "",
+      showlegend = FALSE
+    )
+  }
+
+  p %>%
+    plotly::layout(
+      title = paste0(
+        "Densité des Pokémon du top ", q14_top_n,
+        " Smogon - version ", q14_version_label
+      ),
+      images = list(list(
+        source = kanto_img_source,
+        xref = "x",
+        yref = "y",
+        x = 0,
+        y = q14_img_height,
+        sizex = q14_img_width,
+        sizey = q14_img_height,
+        sizing = "stretch",
+        opacity = 1,
+        layer = "below"
+      )),
+      xaxis = list(
+        range = c(0, q14_img_width),
+        domain = c(0, 1),
+        visible = FALSE,
+        fixedrange = TRUE,
+        constrain = "domain"
+      ),
+      yaxis = list(
+        range = c(0, q14_img_height),
+        domain = c(0, 1),
+        visible = FALSE,
+        fixedrange = TRUE,
+        scaleanchor = "x",
+        scaleratio = 1,
+        constrain = "domain"
+      ),
+      margin = list(l = 0, r = 22, b = 0, t = 42, pad = 0),
+      annotations = list(list(
+        x = 0.014,
+        y = 0.035,
+        xref = "paper",
+        yref = "paper",
+        xanchor = "left",
+        yanchor = "bottom",
+        align = "left",
+        showarrow = FALSE,
+        bgcolor = "rgba(255,255,255,0.70)",
+        bordercolor = "rgba(80,80,80,0.25)",
+        borderwidth = 1,
+        font = list(size = 10, color = "#222222"),
+        text = paste0(
+          "<b>Légende</b><br>",
+          "Couleur : sqrt(score usage)<br>",
+          "Contour : zone de rencontre<br>",
+          "Survol : score et Pokémon"
+        )
+      )),
+      hovermode = "closest",
+      hoverlabel = list(align = "left")
+    ) %>%
+    plotly::config(displayModeBar = FALSE, responsive = TRUE) %>%
+    htmlwidgets::onRender(
+      "function(el) {
+        function resizeKantoMap() {
+          var width = el.getBoundingClientRect().width || 900;
+          var height = Math.round(width * 1448 / 2048) + 42;
+          el.style.height = height + 'px';
+          Plotly.relayout(el, {height: height, width: width});
+        }
+        resizeKantoMap();
+        window.addEventListener('resize', resizeKantoMap);
+      }"
+    )
+} else {
+  ggplot() +
+    geom_raster(
+      data = q14_density_grid,
+      aes(x = x, y = q14_img_height - y, fill = density_display),
+      alpha = 0.88
+    ) +
+    geom_rect(
+      data = q14_map_data,
+      aes(xmin = x0, xmax = x1, ymin = y0, ymax = y1),
+      fill = NA,
+      colour = "white",
+      linewidth = 0.25
+    ) +
+    geom_text(
+      data = q14_map_data %>% filter(n_good > 0),
+      aes(x = center_x, y = center_y, label = n_good),
+      colour = "white",
+      fontface = "bold",
+      size = 3
+    ) +
+    scale_y_reverse(limits = c(q14_img_height, 0), expand = c(0, 0)) +
+    scale_x_continuous(limits = c(0, q14_img_width), expand = c(0, 0)) +
+    scale_fill_gradientn(
+      colours = c("#FFFFFF00", "#FFE682", "#FF913C", "#E8334A", "#64002D"),
+      name = "sqrt(score)"
+    ) +
+    coord_fixed() +
+    labs(
+      title = paste0("Densité des Pokémon du top ", q14_top_n, " Smogon"),
+      subtitle = "Score spatial lissé : usage Smogon cumulé par zone",
+      x = NULL,
+      y = NULL
+    ) +
+    theme_void() +
+    theme(
+      plot.title = element_text(face = "bold", size = 14),
+      plot.subtitle = element_text(colour = "grey45", size = 10),
+      legend.position = "bottom"
+    )
+}
+```
+
+Cette carte doit être lue comme une carte d'accessibilité compétitive. Une zone est intense si elle donne accès, directement ou via une famille évolutive, à plusieurs Pokémon très utilisés, ou à un Pokémon particulièrement dominant. La rareté et le niveau d'obtention restent nécessaires pour interpréter cette accessibilité, mais ils ne modifient pas la couleur.
+
+### Tableau n°1 : Zones contenant le plus de Pokémon compétitifs
+
+```{r q14_table, echo = FALSE}
+q14_map_data %>%
+  filter(n_good > 0) %>%
+  arrange(desc(density_score), best_rank, min_level) %>%
+  transmute(
+    Zone = location_label,
+    `Familles top Smogon` = n_good,
+    `Score usage Smogon` = round(density_score, 3),
+    `Meilleur rang` = best_rank,
+    `Niveau min.` = min_level,
+    `Rareté max.` = max_rarity,
+    `Accès` = source_details
+  ) %>%
+  head(12) %>%
+  knitr::kable()
+```
+
+La distribution suggère que les Pokémon les plus valorisés par le métagame ne sont pas tous placés naturellement sur le chemin principal. Plusieurs menaces fortes apparaissent dans des zones tardives ou optionnelles : la Caverne Azurée concentre des Pokémon très puissants, mais elle est post-ligue ; la Centrale donne accès à Électhor, mais reste optionnelle ; les Îles Écume et le Parc Safari ajoutent aussi des espèces fortes ou rares.
+
+À l'inverse, quelques Pokémon compétitifs sont accessibles pendant une progression plus classique. Cela nuance l'idée d'un jeu qui réserverait strictement les meilleurs Pokémon à la fin : le jeu laisse tôt ou au milieu de l'aventure certains choix très solides, mais les options les plus dominantes restent souvent associées à des contraintes de timing, de rareté ou d'exploration.

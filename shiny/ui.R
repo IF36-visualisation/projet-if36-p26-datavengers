@@ -11,24 +11,177 @@ library(shiny)
 library(shinydashboard)
 
 dashboardPage(
-  dashboardHeader(title = "Dashboard la Vague"),
+  
+  dashboardHeader(
+    title = "Projet - La Vague"
+  ),
   
   dashboardSidebar(
+    
     sidebarMenu(
-      menuItem("Accueil", tabName = "home")
+      menuItem(
+        "Ventes",
+        tabName = "ventes",
+        icon = icon("chart-column")
+      ),
+      
+      menuItem(
+        "Speedruns",
+        tabName = "speedruns",
+        icon = icon("stopwatch")
+      )
+    ),
+    
+    hr(),
+    
+    h4("Filtres ventes"),
+    
+    selectInput(
+      "sales_genre",
+      "Genre :",
+      choices = NULL,
+      multiple = TRUE
+    ),
+    
+    selectInput(
+      "sales_platform",
+      "Plateforme :",
+      choices = NULL,
+      multiple = TRUE
+    ),
+    
+    hr(),
+    
+    h4("Filtres speedrun"),
+    
+    selectInput(
+      "speedrun_genre",
+      "Genre speedrun :",
+      choices = NULL,
+      multiple = TRUE
+    ),
+    
+    selectInput(
+      "speedrun_platform",
+      "Plateforme speedrun :",
+      choices = NULL,
+      multiple = TRUE
+    ),
+    
+    hr(),
+    
+    selectInput(
+      "region",
+      "Région des ventes :",
+      choices = c(
+        "Global" = "Global_Sales",
+        "Amérique du Nord" = "NA_Sales",
+        "Europe" = "EU_Sales",
+        "Japon" = "JP_Sales",
+        "Autres régions" = "Other_Sales"
+      ),
+      selected = "Global_Sales"
+    ),
+    
+    sliderInput(
+      "top_n",
+      "Nombre d'éléments à afficher :",
+      min = 5,
+      max = 25,
+      value = 10
+    ),
+    
+    actionButton(
+      "reset_filters",
+      "Réinitialiser les filtres",
+      icon = icon("rotate-left")
     )
   ),
   
   dashboardBody(
+    
     tabItems(
+      
+      # Page Ventes
       tabItem(
-        tabName = "home",
-        fluidRow(infoBox("Fix", 42, icon = icon("info")))
+        tabName = "ventes",
+        
+        fluidRow(
+          valueBoxOutput("total_sales_box"),
+          valueBoxOutput("nb_games_box"),
+          valueBoxOutput("best_genre_box")
+        ),
+        
+        fluidRow(
+          box(
+            title = "Les Plateformes qui vendent le plus de jeux",
+            width = 6,
+            status = "primary",
+            solidHeader = TRUE,
+            plotOutput("sales_platform_plot")
+          ),
+          
+          box(
+            title = "Ventes globales par genre de jeu vidéo",
+            width = 6,
+            status = "primary",
+            solidHeader = TRUE,
+            plotOutput("sales_genre_plot")
+          )
+        ),
+        
+        fluidRow(
+          box(
+            title = "Jeux les plus vendus",
+            width = 12,
+            status = "primary",
+            solidHeader = TRUE,
+            plotOutput("top_games_plot")
+          )
+        )
       ),
       
+      
+      # Page Speedrun SPEEDRUNS
       tabItem(
-        tabName = "otherPage"
+        tabName = "speedruns",
+        
+        fluidRow(
+          valueBoxOutput("nb_runs_box"),
+          valueBoxOutput("nb_speedrun_games_box"),
+          valueBoxOutput("best_speedrun_platform_box")
+        ),
+        
+        fluidRow(
+          box(
+            title = "Jeux avec le plus de runs",
+            width = 6,
+            status = "warning",
+            solidHeader = TRUE,
+            plotOutput("runs_games_plot")
+          ),
+          
+          box(
+            title = "Plateformes les plus populaires en speedrun",
+            width = 6,
+            status = "warning",
+            solidHeader = TRUE,
+            plotOutput("runs_platform_plot")
+          )
+        ),
+        
+        fluidRow(
+          box(
+            title = "Genres les plus représentés en speedrun",
+            width = 12,
+            status = "warning",
+            solidHeader = TRUE,
+            plotOutput("runs_genre_plot")
+          )
+        )
       )
     )
   )
 )
+
+

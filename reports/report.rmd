@@ -1,0 +1,1761 @@
+---
+title: "Projet IF36"
+subtitle: Analyse des accidents de la route en France
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+## Présentation du projet
+
+Dans le cadre de ce projet, nous avons exploité un jeu de données consolidé issu du fichier BAAC (Bulletin d’Analyse des Accidents Corporels). Les données sources proviennent du jeu de données officiel **[Bases de données annuelles des accidents corporels de la circulation routière - 2005 à 2024](https://www.data.gouv.fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2024)**, disponible sur la plateforme data.gouv.fr.
+
+Notre fichier principal `accidents_2020_2024.csv` a été construit pour l’analyse en fusionnant, pour chaque année de 2020 à 2024, les 4 tables BAAC suivantes :
+- `usagers`
+- `vehicules`
+- `lieux`
+- `caracteristiques`
+
+L’objectif est de mener une exploration visuelle des accidents corporels en cherchant des relations entre la gravité, le contexte routier, les profils d’usagers, les véhicules et la temporalité. Nous voulons identifier ce qui semble augmenter le risque d’accident grave, tout en restant critiques sur les limites de la donnée. 
+
+## Structure et nature des données
+
+Le fichier CSV contient **689 434 lignes** et **56 variables**. 
+
+Les correspondances complètes se trouvent dans le pdf 'Descriptions_des_bases_de_données_annuelles.pdf'. Nous avons décider de ne pas toutes les mettre pour ne surcharger les tableaux déjà conséquents.
+
+---
+
+### 1. Identifiants (7 variables)
+| Variable | Note (Libellé) | Type | Description |
+| :--- | :--- | :--- | :--- |
+| **Num_Acc** | Identifiant Accident | VARCHAR | Identifiant unique de l'accident. |
+| **id_vehicule** | Identifiant Véhicule | VARCHAR | Identifiant unique du véhicule. |
+| **num_veh** | Numéro Véhicule | VARCHAR | Identifiant relatif (A01, B01...). |
+| **num_veh_veh** | Numéro Véhicule (Lien) | VARCHAR | Doublon technique de `num_veh`. |
+| **id_usager** | Identifiant Usager | VARCHAR | Identifiant unique de l'usager. |
+| **annee_dataset** | Année Source | INTEGER | Année du fichier d'origine. |
+| **adr** | Adresse | VARCHAR | Adresse postale simplifiée. |
+---
+_Note : Ces variables peuvent être surpprimer car inutiles dans l'annalyse_
+---
+
+### 2. Variables temporelles (5 variables)
+| Variable | Note (Libellé) | Type | Format / Valeurs |
+| :--- | :--- | :--- | :--- |
+| **an** | Année | INTEGER | Format YYYY. |
+| **mois** | Mois | INTEGER | 1 à 12. |
+| **jour** | Jour | INTEGER | 1 à 31. |
+| **hrmn** | Heure et Minute | VARCHAR | Format HH:MM. |
+| **an_nais** | Année naissance | INTEGER | Année de naissance de l'usager. |
+
+---
+
+### 3. Profil et état de l'usager (12 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **place** | Place occupée | INTEGER | 1:Conducteur, 2:Passager AV, 10:Piéton... |
+| **catu** | Catégorie usager | INTEGER | 1:Conducteur, 2:Passager, 3:Piéton. |
+| **grav** | Gravité | INTEGER | 1:Indemne, 2:Tué, 3:Hospit, 4:Léger. |
+| **sexe** | Sexe | INTEGER | 1:Masculin, 2:Féminin. |
+| **trajet** | Motif déplacement | INTEGER | 1:Travail, 5:Loisirs, 9:Autre. |
+| **secu1** | Équipement 1 | INTEGER | 1:Ceinture, 2:Casque, 9:Non utilisé. |
+| **secu2** | Équipement 2 | INTEGER | Idem secu1. |
+| **secu3** | Équipement 3 | INTEGER | Idem secu1. |
+| **locp** | Localis. piéton | INTEGER | 1:Sur chaussée, 5:Trottoir... |
+| **actp** | Action piéton | INTEGER | 3:Traversant, 6:Statique... |
+| **etatp** | État piéton | INTEGER | 1:Seul, 2:Accompagné, 3:En groupe. |
+| **occutc** | Occupants TC | INTEGER | Nb d'occupants dans les transports en commun. |
+
+---
+
+### 4. Caractéristiques du véhicule (7 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **senc** | Sens circulation | INTEGER | 1:Sens croissant, 2:Sens inverse. |
+| **catv** | Catégorie véhicule | INTEGER | 07:VL, 01:Vélo, 33:Moto... |
+| **obs** | Obstacle fixe | INTEGER | 1:Véh. stationné, 2:Arbre, 10:Mur... |
+| **obsm** | Obstacle mobile | INTEGER | 1:Piéton, 2:Véhicule, 6:Animal. |
+| **choc** | Point de choc | INTEGER | 1:Avant, 2:Arrière, 3:Droit, 4:Gauche. |
+| **manv** | Manœuvre | INTEGER | 1:Sans changement, 15:Tourne G... |
+| **motor** | Motorisation | INTEGER | 1:Hydrocarbures, 3:Élec, 4:Hydrogène. |
+
+_Note : Là aussi des variables sont inutiles et peuvent donc être surpprimées_
+
+---
+
+### 5. Localisation et contexte (10 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **dep** | Département | VARCHAR | Code (ex: 75, 2A). |
+| **com** | Commune | VARCHAR | Code INSEE commune. |
+| **agg** | Agglomération | INTEGER | 1:Hors agglo, 2:En agglo. |
+| **int** | Intersection | INTEGER | 1:Hors int., 6:Giratoire... |
+| **lum** | Lumière | INTEGER | 1:Jour, 5:Nuit avec écl. |
+| **atm** | Météo | INTEGER | 1:Normale, 2:Pluie, 4:Neige... |
+| **col** | Type collision | INTEGER | 1:Frontale, 3:Côté, 6:Autre. |
+| **lat** | Latitude | FLOAT | Coordonnée |
+| **long** | Longitude | FLOAT | Coordonnée |
+| **situ** | Situation | INTEGER | 1:Sur chaussée, 3:Accotement, 4:Trottoir. |
+
+---
+
+### 6. Infrastructure et voie (16 variables)
+| Variable | Note (Libellé) | Type | Valeurs |
+| :--- | :--- | :--- | :--- |
+| **catr** | Catégorie route | INTEGER | 1:Autoroute, 3:Départementale... |
+| **voie** | Nom de la voie | VARCHAR | Nom de la rue ou route. |
+| **v1** | Numéro route | VARCHAR | Numéro de la voie. |
+| **v2** | Indice route | VARCHAR | Indice alphanumérique de la voie. |
+| **circ** | Régime circulation | INTEGER | 1:Sens unique, 2:Bidirectionnel. |
+| **nbv** | Nb de voies | INTEGER | Nombre total de voies. |
+| **vosp** | Voie réservée | INTEGER | 1:Piste cyclable, 2:Voie bus. |
+| **prof** | Profil route | INTEGER | 1:Plat, 2:Pente, 3:Sommet. |
+| **pr** | Point de repère | VARCHAR | Numéro du PR. |
+| **pr1** | Distance au PR | VARCHAR | Distance en mètres au PR. |
+| **plan** | Tracé en plan | INTEGER | 1:Rectiligne, 2:Courbe. |
+| **lartpc** | Largeur TPC | FLOAT | Largeur du terre-plein central. |
+| **larrout** | Largeur chaussée | FLOAT | Largeur de la route (hors accotements). |
+| **surf** | État surface | INTEGER | 1:Normale, 2:Mouillée, 7:Verglacée. |
+| **infra** | Aménagement | INTEGER | 1:Souterrain, 3:Échangeur, 5:Pont. |
+| **vma** | Vitesse autorisée | INTEGER | Vitesse max en km/h. |
+
+---
+
+_Note : Les valeurs `-1` ou `0` indiquent une donnée non renseignée ou non applicable._
+
+```{r setup, include=FALSE}
+library(knitr)
+library(tibble)
+library(tidyr)
+library(scales)
+library(ggplot2)
+library(dplyr)
+library(sf)
+library(here)
+library(forcats)
+
+# Configuration globale des graphiques pour le PDF
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  out.width = "100%",    # Utiliser 100% de la largeur du texte disponible
+  fig.width = 6,         # Réduire la largeur interne de 7 à 6 pour mieux tenir
+  fig.height = 4,
+  fig.pos = "H"
+)
+
+cleaned_dataset <- "../data/accidents_2020_2024_PROPRE.csv"
+input_zip <- "../data/accidents_2020_2024.zip"
+output_path <- "../data/accidents_2020_2024_PROPRE.csv"
+
+if(!file.exists(cleaned_dataset)) {
+  source("../R/clean_data.R")
+  
+  clean_dataset(
+    input_zip=input_zip,
+    output_path=output_path
+  )
+    
+  message("Nettoyage effectué.")
+} else {
+  message("Le fichier propre existe déjà. Pas de nettoyage.")
+}
+
+
+
+df <- read.csv("../data/accidents_2020_2024_PROPRE.csv", sep = ";") 
+
+
+# Paramètres d'affichage et thématique des graphiques
+percent <- scales::label_percent(accuracy = 0.1, decimal.mark = ",")
+number <- scales::label_number(big.mark = " ", decimal.mark = ",")
+
+
+meteo_levels <- c(
+  "Normale",
+  "Pluie legere",
+  "Pluie forte",
+  "Neige / grele",
+  "Brouillard / fumee",
+  "Vent fort / tempete",
+  "Temps eblouissant",
+  "Temps couvert",
+  "Autre"
+)
+
+meteo_palette <- c(
+  "Normale" = "#4C78A8",
+  "Pluie legere" = "#72B7B2",
+  "Pluie forte" = "#1F9E89",
+  "Neige / grele" = "#A0CBE8",
+  "Brouillard / fumee" = "#F58518",
+  "Vent fort / tempete" = "#E45756",
+  "Temps eblouissant" = "#B279A2",
+  "Temps couvert" = "#9D755D",
+  "Autre" = "#BAB0AC"
+)
+
+gravite_palette <- c(
+  "Indemne" = "#54A24B",
+  "Blesse leger" = "#EECA3B",
+  "Hospitalise" = "#E45756",
+  "Tue" = "#B279A2"
+)
+
+```
+
+## I. Vue d'ensemble : La dynamique spatio-temporelle
+
+### Comment évolue le nombre total d'accidents en 2020 et 2024 ?
+
+```{r}
+df_evolution <- df %>%
+  group_by(an) %>%
+  summarise(nb_accidents = n(), .groups = "drop")
+
+ggplot(df_evolution, aes(x = as.numeric(an), y = nb_accidents)) +
+  geom_line(color = "#2c3e50", linewidth = 1) +
+  geom_point(color = "#e74c3c", size = 3) +
+  scale_x_continuous(breaks = seq(2020, 2024, by = 1)) +
+  theme_minimal() +
+  labs(
+    title = "Évolution du nombre total d'accidents (2020 - 2024)",
+    x = "Année",
+    y = "Nombre total d'accidents"
+  )
+
+```
+
+#### Analyse des résultats :
+
+L’analyse du graphique met en évidence une dynamique temporelle en trois phases distinctes. On observe tout d'abord un niveau minimal en 2020 (autour de 105 000 accidents), ce qui valide l'impact direct des confinements de la crise sanitaire sur la réduction de l'exposition au risque routier. S'ensuit une phase de reprise partielle en 2021 et 2022 où le volume fluctue entre 120 000 et 126 000 cas. La rupture majeure de la série temporelle intervient entre 2022 et 2023, marquée par une augmentation brutale pour atteindre un plateau historique à près de 160 000 accidents. Ce saut quantitatif important ne traduit pas nécessairement une dégradation soudaine du comportement des usagers, mais plutôt un effet de bord méthodologique : il s'agit vraisemblablement de l'intégration de nouvelles bases de données ou d'un changement de périmètre dans l'enregistrement des accidents par les forces de l'ordre (comme le passage au reporting complet des pré-déclarations). Enfin, la stabilisation stricte observée entre 2023 et 2024 confirme l'établissement d'un nouveau régime permanent pour notre système d'indicateurs.
+
+### Il y a-t-il des tendances saisonnières dans les accidents ?
+
+#### Objectif de l'analyse :
+L'objectif est d'observer la répartition du nombre d'accidents tout au long de l'année pour identifier d'éventuelles tendances saisonnières (plus d'accidents en hiver ou en été ?). Nous ajoutons également le niveau de gravité pour voir si la saisonnalité impacte non seulement la fréquence, mais aussi la sévérité des accidents (ex: conditions météorologiques hivernales).
+
+```{r mois_gravite}
+# Préparation des données par mois et gravité
+df_mois <- df %>%
+  filter(!is.na(mois), mois >= 1, mois <= 12,
+         grav %in% c(1, 2, 3, 4)) %>%
+  mutate(
+    mois_label = factor(mois, 
+                        levels = 1:12, 
+                        labels = c("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", 
+                                   "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")),
+    grav_label = factor(grav, 
+                        levels = c(1, 4, 3, 2), 
+                        labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(mois_label, grav_label) %>%
+  summarise(n = n(), .groups = 'drop')
+
+# Création du graphique en barres
+ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_y_continuous(labels = scales::label_number(big.mark = " ")) +
+  scale_fill_manual(
+    values = c(
+      "Indemne"               = "#cbd5e1",
+      "Blessé léger"          = "#fef08a",
+      "Blessé hospitalisé"    = "#f97316",
+      "Tué"                   = "#b91c1c"
+    ),
+    name = "Niveau de gravité"
+  ) +
+  labs(
+    title    = "Nombre d'accidents et gravité selon le mois",
+    subtitle = "Cumul des années 2020 à 2024",
+    x        = "Mois",
+    y        = "Nombre d'usagers impliqués"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    legend.position = "top"
+  )
+```
+
+#### Analyse des résultats :
+
+De manière générale, on voit qu'il y a plus d'accidents durant les mois de juin juillet et septembre octobre. En été (Juillet/Août), les conditions météorologiques sont clémentes, ce qui entraîne un sentiment de sécurité et une vitesse plus élevée. Les trajets de vacances étant plus nombreux aussi sont peut-être une cause plosible de l'augmentation d'accidents. Malheureusement, nous aurions bien voulu étudier plus en détails si la localisation de l'accident etant proche ou non du lieu de domicile influe sur le nombre d'accidents. Nous aurions pu alors valider l'hypotèse des départs en vancances. Ces données entant sensible, elle ne sont pas rendues publiques.
+
+#### À quelles heures de la journée les accidents sont-ils les plus fréquents ?
+
+Pour répondre à cette question, nous analysons la répartition des accidents selon l’heure à laquelle ils se produisent.
+
+Nous proposons deux graphiques complémentaires :
+- diagramme en barres par heure, pour observer précisément les heures où les accidents sont les plus fréquents ;
+- diagramme en barres par période de la journée, pour comparer plus globalement la nuit, le matin, l’après-midi et le soir.
+
+Cette double visualisation permet d’identifier les moments de la journée où le nombre d’accidents est le plus élevé.
+
+#### Création d’un jeu de données des accidents selon l’heure et la période de la journée
+
+```{r}
+df_accidents_heure <- df %>%
+  filter(!is.na(hrmn)) %>%
+  mutate(
+    hrmn_clean = gsub("[^0-9]", "", as.character(hrmn)),
+    hrmn_clean = ifelse(nchar(hrmn_clean) == 3, paste0("0", hrmn_clean), hrmn_clean),
+    heure = as.integer(substr(hrmn_clean, 1, 2)),
+    minutes = as.integer(substr(hrmn_clean, 3, 4))
+  ) %>%
+  filter(
+    !is.na(heure),
+    heure >= 0,
+    heure <= 23
+  ) %>%
+  distinct(Num_Acc, heure, .keep_all = TRUE) %>%
+  group_by(heure) %>%
+  summarise(
+    nb_accidents = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(nb_accidents))
+
+df_accidents_periode <- df %>%
+  filter(!is.na(hrmn)) %>%
+  mutate(
+    hrmn_clean = gsub("[^0-9]", "", as.character(hrmn)),
+    hrmn_clean = ifelse(nchar(hrmn_clean) == 3, paste0("0", hrmn_clean), hrmn_clean),
+    heure = as.integer(substr(hrmn_clean, 1, 2)),
+    
+    periode_journee = case_when(
+      heure >= 0  & heure < 6  ~ "Nuit",
+      heure >= 6  & heure < 12 ~ "Matin",
+      heure >= 12 & heure < 18 ~ "Apres-midi",
+      heure >= 18 & heure <= 23 ~ "Soir",
+      TRUE ~ NA_character_
+    ),
+    
+    periode_journee = factor(
+      periode_journee,
+      levels = c("Nuit", "Matin", "Apres-midi", "Soir")
+    )
+  ) %>%
+  filter(!is.na(periode_journee)) %>%
+  distinct(Num_Acc, periode_journee, .keep_all = TRUE) %>%
+  group_by(periode_journee) %>%
+  summarise(
+    nb_accidents = n(),
+    .groups = "drop"
+  )
+
+
+heure_max <- df_accidents_heure %>%
+  slice_max(nb_accidents, n=1)
+
+periode_max <- df_accidents_periode %>%
+  slice_max(nb_accidents, n = 1)
+
+```
+
+#### Visualisation des accidents selon l’heure de la journée
+```{r}
+ggplot(df_accidents_heure, aes(x=heure, y=nb_accidents)) +
+  geom_col(fill= "#2E86AB") +
+  geom_col(
+    data = heure_max, 
+    aes(x = heure, y = nb_accidents),
+    fill = "#E63946"
+  ) + geom_text(
+    data = heure_max, 
+    aes(
+      x = heure, 
+      y = nb_accidents,
+      label = paste0(heure, "h\n", nb_accidents, " accidents")
+    ),
+    vjust = -0.5,
+    size = 4
+  ) +
+  scale_x_continuous(
+    breaks = 0:23
+  ) +
+  labs(
+    title = "Nombre d'accidents selon l'heure de la journée",
+    subtitle = "L'heure la plus fréquente est mise en évidence en rouge",
+    x = "Heure de la journée",
+    y = "Nombre d'accidents"
+  ) +
+  theme_minimal() + 
+    theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_line(color = "grey90", linewidth = 0.4),
+    panel.grid.major.y = element_line(color = "grey90", linewidth = 0.4)
+  )
+```
+#### Analyse des résultats
+
+Ce graphique montre l'évolution du nombre d'accidents au fil de la journée. On observe une hausse progressive de la sinistralité dès le début de la matinée (avec un premier pic à 8h), suivie d'une forte augmentation en fin d'après-midi.
+
+L'heure la plus fréquente est mise en évidence en rouge : il s'agit de 17h, moment qui enregistre le pic absolu d'accidents. Cela correspond aux heures de pointe, lorsque les flux de circulation sont les plus denses en raison des trajets retour du travail ou de l'école. À l'inverse, le nombre d'accidents atteint son minimum au milieu de la nuit (entre 3h et 4h).
+
+
+#### Visualisation des accidents selon les périodes de la journée
+```{r}
+ggplot(df_accidents_periode, aes(x = periode_journee, y = nb_accidents)) +
+  geom_col(fill = "#2E86AB") +
+  geom_col(
+    data = periode_max,
+    aes(x = periode_journee, y = nb_accidents),
+    fill = "#E63946"
+  ) +
+  geom_text(
+    aes(
+      label = nb_accidents
+    ),
+    vjust = -0.4,
+    size = 4
+  ) +
+    annotate(
+    "text",
+    x = 4.8,
+    y = 50000,
+    label = paste(
+      "Périodes :",
+      "- Nuit : 00h–06h",
+      "- Matin : 06h–12h",
+      "- Après-midi : 12h–18h",
+      "- Soir : 18h–24h",
+      sep = "\n"
+    ),
+    hjust = 0,
+    size = 4
+  ) +
+  labs(
+    title = "Nombre d'accidents selon la période de la journée",
+    subtitle = "La période la plus fréquente est mise en évidence en rouge",
+    x = "Période de la journée",
+    y = "Nombre d'accidents"
+  ) +
+  coord_cartesian(xlim = c(1, 6)) +
+  theme_classic()
+```
+Ce graphique montre le nombre d'accidents regroupés par grandes périodes de la journée. On observe des niveaux de sinistralité quasi identiques et très élevés durant le matin et le soir (autour de 72 000 accidents), encadrant une activité routière globalement dense sur l'ensemble de la journée.
+
+La période la plus fréquente est mise en évidence en rouge : il s'agit de l'après-midi (entre 12h et 18h), moment qui enregistre le pic absolu avec 101 381 accidents. Cela correspond aux heures où les flux de circulation cumulés (déplacements professionnels, livraisons, trajets scolaires et départs en fin de journée) sont les plus intenses. À l'inverse, le nombre d'accidents atteint son minimum au milieu de la nuit (entre 00h et 06h) avec 22 593 accidents, en raison d'une baisse radicale du trafic.
+
+#### Où se produisent le plus d’accidents (région, département, ville) ?
+
+Pour répondre à cette question, nous avons décidé de réaliser un choroplète avec la librairie tmap qui est plus adapté que ggplot2 et permet une visualisation interractive. De plus avec ('tm_dots'), nous pourrons voir la distribution des points représentant les accidents dans toute la France.
+
+```{r setup_tmap, message=FALSE}
+library(sf)
+library(dplyr)
+library(tmap)
+library(here)
+
+# Pour l'interactif et les erreurs de calcul
+tmap_mode("plot") #remplacer le view par plot si on veut retirer l'interaction
+sf_use_s2(FALSE)
+```
+
+```{r data_loading}
+# 1. Chargement des données
+dep_map <- st_read(here("Departements","Departements.shp"), quiet = TRUE)
+
+# 2. Préparation des codes département
+df$dep <- as.character(df$dep)
+dep_map$DDEP_C_COD <- as.character(dep_map$DDEP_C_COD)
+
+# Ajouter un 0 devant les départements 1-9 uniquement
+df$dep <- ifelse(
+  grepl("^[0-9]$", df$dep),
+  paste0("0", df$dep),
+  df$dep
+)
+
+# 3. Agrégation et Jointure (Création de dep_map2)
+acc_dep <- df %>%
+  group_by(dep) %>%
+  summarise(nb_accidents = n())
+
+dep_map2 <- dep_map %>%
+  left_join(acc_dep, by = c("DDEP_C_COD" = "dep"))
+
+```
+
+```{r filtering}
+# Filtrage de la carte
+dep_map_metro <- dep_map2 %>% 
+  filter(
+    DDEP_C_COD %in% c(sprintf("%02d", 1:95), "2A", "2B")
+  ) %>%
+  st_make_valid()
+
+# Filtrage des points + Échantillonnage pour réduire la vitesse d'exécution
+df_sf_metro <- df %>%
+  filter(dep %in% c(sprintf("%02d", 1:95), "2A", "2B")) %>%
+  
+  # conversion des coordonnées texte -> numérique
+  mutate(
+    long = as.numeric(gsub(",", ".", long)),
+    lat = as.numeric(gsub(",", ".", lat))
+  ) %>%
+  
+  # retirer les coordonnées manquantes
+  filter(!is.na(long), !is.na(lat)) %>%
+  
+  # échantillonnage
+  slice_sample(n = 10000) %>%
+  
+  # conversion en objet spatial
+  st_as_sf(coords = c("long", "lat"), crs = 4326)
+```
+
+```{r final_map, fig.width=10, fig.height=8}
+tm_shape(dep_map_metro) +
+  tm_polygons(
+    "nb_accidents",
+    palette = "YlOrRd", 
+    alpha = 0.5,
+    title = "Densité accidents",
+    id = "DDEP_C_COD"
+  ) +
+tm_shape(df_sf_metro) +
+  tm_dots(
+    col = "red", 
+    size = 0.05,        
+    alpha = 0.6,
+    clustering = FALSE,
+    interactive = FALSE,
+    shape = 21,         # Un point plein est plus stable au zoom
+    legend.show = FALSE
+  ) +
+tm_view(
+  basemaps = "CartoDB.Positron",
+  view.legend.position = c("right", "bottom"),
+  # On retire les limites de zoom strictes pour être libre
+  set.view = c(2.21, 46.22, 6) 
+)
+```
+#### Analyse des résultats :
+
+On peut observer sur la carte que la majorité des points se situent bien dans les grandes villes (Paris, Lyon, Marseille et Bordeaux) ce qui est normal vu qu'il y a plus de circulation. Parmi ces grandes villes, Paris sort du lot avec plus de 60 000 accidents entre 2020 et 2024.
+
+
+## II. L'environnement de conduite : Infrastructures et Météo 
+
+### Les accidents en agglomération sont-ils différents de ceux hors agglomération ? (en terme de gravité et volume)
+
+Pour répondre à cette question j'ai décidé de faire un barplot (`geom_bar`) une barre pour les accidents en agglomération et une autre pour ceux hors agglomération. De plus, avec la fonction `positon = stack` on peut observer la gravité de l'accident sur les passagers/conducteurs.
+
+
+```{r}
+# On crée d'abord le tableau nettoyé et on crée des catégories
+df_plot <- df %>%
+  filter(agg %in% c(1, 2), grav %in% c(1, 2, 3, 4)) %>% # permet de ne pas prendre les NA
+  mutate(
+    Agglomeration = factor(agg, 
+                           levels = c(1, 2), # On transforme les numéros en catégories distinctes et en leur donnant un ordre choisi
+                           labels = c("Hors agglomération", "En agglomération")),
+    Gravite = factor(grav, 
+                     levels = c(1, 4, 3, 2), 
+                     # Ici on choisit un ordre spécifique de gravité
+                     labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  )
+
+ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
+  geom_bar(position = "stack") + # Stack permet de ne garder les proportions (plus intérressant dans le cas d'une comparaison de volume)
+  scale_fill_manual(values = c("Indemne" = "#1a9641",
+                               "Blessé léger" = "#fdae61",
+                               "Blessé hospitalisé" = "#d7191c",
+                               "Tué" = "#000000")) +
+  labs(
+    title = "Gravité des accidents : En agglomération vs hors agglomération",
+    subtitle = "La majorité des accidents ont lieu en agglomération (double)",
+    x = "",
+    y = "Nombre d'usagers impliqués",
+    fill = "Niveau de gravité",
+    caption = "Source : Données BAAC 2020-2024"
+  ) +
+  theme_minimal()
+  
+
+```
+
+
+De ce premier graphique, on peut observer une nette différence quant à la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents ont tendances à être plus grave hors agglomération. Pour observer ce phénomène de plus près, voici un second graphique similaire au premier mais en étudiant seulement les accidents graves (blessés hospitalisés et tués).
+
+```{r}
+# Deuxième df en prennant cette fois-ci uniquement les bléssés et tués
+df_plot <- df %>%
+  filter(agg %in% c(1, 2), grav %in% c(3, 2)) %>% # On ne prend que les bléssés et tué
+  mutate(
+    Agglomeration = factor(agg, 
+                           levels = c(1, 2), # On transforme les numéros en catégories distinctes et en leur donnant un ordre choisi
+                           labels = c("Hors agglomération", "En agglomération")),
+    Gravite = factor(grav, 
+                     levels = c(3, 2), 
+                     # Ici on choisit un ordre spécifique de gravité
+                     labels = c("Blessé hospitalisé", "Tué"))
+  )
+
+ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
+  geom_bar(position = "stack") + # Stack permet de ne garder les proportions (plus intérressant dans le cas d'une comparaison de volume)
+  stat_count(geom = "text", 
+             aes(label = after_stat(count)), 
+             position = position_stack(vjust = 0.5), 
+             color = "white", size = 4, fontface = "bold") +
+  scale_fill_manual(values = c("Blessé hospitalisé" = "#d7191c",
+                               "Tué" = "#000000")) +
+  labs(
+    title = "Accidents graves en agglomération vs hors agglomération",
+    subtitle = "Les accidents hors agglomération présentent une part plus importante de victimes graves",
+    x = "",
+    y = "Nombre d'usagers impliqués",
+    fill = "Niveau de gravité",
+    caption = "Source : Données BAAC 2020-2024"
+  ) +
+  theme_minimal()
+  
+```
+
+
+Dans ce second graphique, le resultat est clair : Les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de blessés hospitalisés est aussi supérieur (environ 4000 bléssés hospitalisé en plus soit 8,21%)
+
+
+
+### Le type de route influence-t-il la gravité des accidents ?
+
+#### Objectif de l'analyse :
+L'objectif est d'identifier les infrastructures routières où les accidents présentent la plus forte sévérité. En normalisant les données par type de route (proportion), nous cherchons à déterminer si le réseau routier influence intrinsèquement la gravité des chocs, indépendamment du volume de trafic global. Nous attendons de visualiser une disparité dans la répartition des niveaux de gravité, notamment pour repérer les routes affichant les taux de "Tués" ou "Blessés hospitalisés" les plus élevés.
+
+
+```{r data_loading_marega}
+df_prop <- df %>%
+  # Filtrage des valeurs valides uniquement
+  filter(catr %in% c(1, 2, 3, 4, 5, 6, 7, 9), 
+         grav %in% c(1, 2, 3, 4)) %>%
+  mutate(
+    catr_label = factor(catr, 
+      levels = c(1, 2, 3, 4, 5, 6, 7, 9), 
+      labels = c("Autoroute", "Route nationale", "Route départementale", 
+                 "Voie communale", "Hors réseau public", "Parc de stationnement", 
+                 "Routes métropole", "Autre")),
+    
+    grav_label = factor(grav, 
+      levels = c(1, 4, 3, 2), 
+      labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(catr_label, grav_label) %>%
+  summarise(n = n(), .groups = 'drop') %>%
+  group_by(catr_label) %>%
+  mutate(pct = n / sum(n))
+
+df_prop <- df_prop %>%
+  group_by(catr_label) %>%
+  mutate(dangerosite = sum(pct[grav_label %in% c("Tué", "Blessé hospitalisé")])) %>%
+  ungroup() %>%
+  mutate(catr_label = reorder(catr_label, dangerosite))
+```
+
+```{r}
+ggplot(df_prop, aes(x = pct, y = catr_label, fill = grav_label)) +
+  # Barres cumulées à 100%
+  geom_col(position = "stack", width = 0.7) +
+  
+  # Formatage propre de l'axe X en pourcentages stricts
+  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0)) +
+  
+  # Palette manuelle sémantique : du neutre (Gris) à l'alerte maximale (Rouge)
+  scale_fill_manual(
+    values = c(
+      "Indemne" = "#cbd5e1",            # Gris ardoise clair
+      "Blessé léger" = "#fef08a",       # Jaune doux
+      "Blessé hospitalisé" = "#f97316", # Orange vif
+      "Tué" = "#b91c1c"                 # Rouge brique foncé
+    ),
+    # Permet d'afficher "Tué" en premier dans la légende pour attirer l'attention
+    breaks = c("Tué", "Blessé hospitalisé", "Blessé léger", "Indemne")
+  ) +
+  
+  # Titres et labels professionnels
+  labs(
+    title = "Profil de sévérité des accidents par type de route",
+    subtitle = "Infrastructures classées par ordre croissant de dangerosité (Tués + Hospitalisés)",
+     x = "Proportion au sein de la catégorie de route (Total = 100%)",
+    y = "Type d'infrastructure routière",
+    fill = "Niveau de gravité"
+  ) +
+  
+  # Thème moderne, propre et épuré
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    legend.position = "top",
+    legend.title = element_text(face = "bold", size = 9.5),
+    panel.grid.major.y = element_blank(), # Supprime la grille horizontale devenue inutile
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(color = "#334155", size = 9.5)
+  )
+```
+
+#### Analyse des résultats :
+Avec ce nouveau graphique en barres empilées à 100%, c'est beaucoup plus facile de comparer la gravité des accidents selon le type de route. En plus, comme les routes sont triées automatiquement de la plus dangereuse à la moins dangereuse (en cumulant les pourcentages de "Tué" et "Blessé hospitalisé"), la lecture est super directe.
+
+Les routes les plus dangereuses (en haut du graphique) : On remarque tout de suite que le "Hors réseau public" et les "Routes départementales" arrivent en tête. Leurs barres ont les segments rouges (Tué) et oranges (Blessé hospitalisé) les plus larges. Ça montre que quand un accident a lieu sur le réseau secondaire, il est souvent plus grave. C'est sûrement lié aux vitesses plus élevées, au fait qu'il n'y a pas toujours de séparation entre les voies (ce qui augmente le risque de choc frontal) ou à des routes moins bien aménagées.
+
+Les routes les moins dangereuses (en bas du graphique) : À l'inverse, les "Voies communales" et les "Autoroutes" se trouvent tout en bas avec les profils les plus rassurants, surtout remplis de jaune (Blessé léger) et de gris (Indemne).
+
+Pour les voies communales, c'est logique : la vitesse est limitée en ville (30 ou 50 km/h), donc les chocs sont moins violents.
+
+Pour les autoroutes, c'est le résultat le plus intéressant de notre analyse. Même si on y roule très vite, le fait qu'il n'y ait pas d'intersections et qu'il y ait des glissières de sécurité fait que les accidents y sont proportionnellement beaucoup moins graves qu'ailleurs.
+
+### Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ?
+
+#### 1 Fréquence des accidents par nombre de voies
+
+```{r nbv_frequence}
+labels_grav <- c(
+  "1" = "Indemne",
+  "2" = "Tué",
+  "3" = "Hospitalisé",
+  "4" = "Blessé léger"
+)
+
+df_nbv <- df %>%
+  select(Num_Acc, nbv, grav) %>%
+  filter(!is.na(nbv), nbv > 0, !is.na(grav), grav > 0) %>%
+  mutate(
+    grav_label = factor(
+      recode(as.character(grav), !!!labels_grav, .default = "Inconnu"),
+      levels = c("Tué", "Hospitalisé", "Blessé léger", "Indemne")
+    )
+  )
+
+df_nbv_freq <- df_nbv %>%
+  distinct(Num_Acc, nbv) %>%
+  count(nbv) %>%
+  mutate(nbv = factor(nbv))
+
+ggplot(df_nbv_freq, aes(x = nbv, y = n)) +
+  geom_col(fill = "#4e79a7", width = 0.7) +
+  geom_text(aes(label = scales::comma(n)), vjust = -0.4, size = 3) +
+  labs(
+    title    = "Fréquence des accidents par nombre de voies",
+    subtitle = "Nombre d'accidents, 2020–2024",
+    x        = "Nombre de voies",
+    y        = "Nombre d'accidents"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+#### 2 Gravité des accidents par nombre de voies
+
+```{r nbv_gravite}
+df_nbv_grav <- df_nbv %>%
+  count(nbv, grav_label) %>%
+  group_by(nbv) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(nbv = factor(nbv))
+
+ggplot(df_nbv_grav, aes(x = nbv, y = pct, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Tué"          = "#d62728",
+      "Hospitalisé"  = "#ff7f0e",
+      "Blessé léger" = "#aec7e8",
+      "Indemne"      = "#2ca02c"
+    ),
+    name = "Gravité"
+  ) +
+  labs(
+    title    = "Gravité des accidents par nombre de voies",
+    subtitle = "En % des usagers impliqués, 2020–2024",
+    x        = "Nombre de voies",
+    y        = "Part (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+#### Conclusion
+
+La grande majorité des accidents se produisent sur des routes à **2 voies** (171 153 accidents),
+ce qui reflète la prépondérance de ce type de route dans le réseau routier français.
+
+Contrairement à ce qu'on pourrait supposer, les routes à **2 voies sont les plus dangereuses**
+en termes de gravité, avec la part de tués et d'hospitalisés la plus élevée. Cela s'explique
+par la présence de trafic dans les deux sens sur une même chaussée, favorisant les **collisions frontales**.
+
+À l'inverse, les routes à **6 voies et plus** présentent une gravité nettement plus faible,
+probablement grâce à la séparation physique des sens de circulation et à des infrastructures
+mieux adaptées à la sécurité (autoroutes, voies rapides).
+Le nombre de voies influence donc bien la gravité des accidents : plus la route est large et ses sens séparés, moins les accidents sont mortels.
+
+### L'état de la chaussée influence-t-il les accidents ?
+
+### Objecrif de l'analse
+Pour répondre à cette question, nous analysons l’état de la chaussée au moment de l’accident. L’objectif est de voir si certaines conditions de route sont plus fréquentes dans les accidents et si elles sont associées à une gravité plus importante.
+
+Nous proposons deux graphiques complémentaires :
+
+- un diagramme en barres en pourcentage, pour observer la part de chaque état de chaussée dans le nombre total d’accidents ;
+- un diagramme en barres empilées à 100 %, pour comparer la proportion d’accidents graves et non graves selon l’état de la chaussée.
+
+Cette double visualisation permet de distinguer la fréquence des accidents et leur gravité selon les conditions de route.
+
+#### Création d’un jeu de données des accidents selon l’état de la chaussée et la gravité
+```{r}
+df_accidents_chaussee <- df %>%
+  filter(!is.na(surf), surf > 0, surf != 9) %>%
+  mutate(
+    Etat_chaussee = factor(
+      surf,
+      levels = c(1, 2, 3, 4, 5, 6, 7, 8),
+      labels = c(
+        "Normale",
+        "Mouillée",
+        "Flaques",
+        "Inondée",
+        "Enneigée",
+        "Boue",
+        "Verglacée",
+        "Corps gras"
+      )
+    ),
+    Gravite = factor(
+      grav,
+      levels = c(1, 4, 3, 2),
+      labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué")
+    ),
+    Accident_grave = ifelse(grav %in% c(2, 3), "Grave", "Non grave")
+  )
+
+# Trier les états de chaussée selon la proportion d'accidents graves
+ordre_chaussee <- df_accidents_chaussee %>%
+  group_by(Etat_chaussee) %>%
+  summarise(
+    prop_grave = mean(Accident_grave == "Grave"),
+    .groups = "drop"
+  ) %>%
+  arrange(prop_grave) %>%
+  pull(Etat_chaussee)
+
+df_accidents_chaussee <- df_accidents_chaussee %>%
+  mutate(
+    Etat_chaussee = factor(Etat_chaussee, levels = ordre_chaussee)
+  )
+
+df_accidents_chaussee_total <- df %>%
+  filter(!is.na(surf), surf > 0, surf != 9) %>%
+  mutate(
+    Etat_chaussee = factor(
+      surf,
+      levels = c(1, 2, 3, 4, 5, 6, 7, 8),
+      labels = c(
+        "Normale",
+        "Mouillée",
+        "Flaques",
+        "Inondée",
+        "Enneigée",
+        "Boue",
+        "Verglacée",
+        "Corps gras"
+      )
+    )
+  ) %>%
+  distinct(Num_Acc, Etat_chaussee) %>%
+  group_by(Etat_chaussee) %>%
+  summarise(
+    nb_accidents = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    pourcentage = nb_accidents / sum(nb_accidents)
+  ) %>%
+  arrange(pourcentage) %>%
+  mutate(
+    Etat_chaussee = factor(Etat_chaussee, levels = Etat_chaussee)
+  )
+```
+
+#### Visualisation de la répartition des accidents selon l’état de la chaussée
+
+```{r}
+ggplot(df_accidents_chaussee_total, aes(x = Etat_chaussee, y = pourcentage)) +
+  geom_col(
+    fill = "#457B9D",
+    alpha = 0.9,
+    width = 0.7
+  ) +
+  
+  geom_text(
+    aes(label = scales::percent(pourcentage, accuracy = 0.1)),
+    vjust = -0.4,
+    size = 4
+  ) +
+  
+  scale_y_continuous(
+    labels = scales::label_percent(),
+    limits = c(0, max(df_accidents_chaussee_total$pourcentage) * 1.15)
+  ) +
+  
+  labs(
+    title = "Répartition des accidents selon l'état de la chaussée",
+    subtitle = "Part de chaque état de chaussée dans le nombre total d'accidents",
+    x = "État de la chaussée",
+    y = "Pourcentage d'accidents"
+  ) +
+  
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(face = "bold", size = 14)
+  )
+```
+
+Ce graphique montre la part de chaque état de la chaussée dans le nombre total d'accidents. On observe que les accidents survenant dans des conditions particulièrement dégradées (chaussée enneigée, verglacée, inondée ou boueuse) restent extrêmement rares, représentant chacun moins de 1% du total.
+
+L'état le plus fréquent est mis en évidence par le pic absolu du graphique : il s'agit de la chaussée normale (80.4%), suivie de loin par la chaussée mouillée (18.7%). Cela correspond logiquement aux conditions les plus courantes lors des déplacements quotidiens, rappelant ainsi que la majorité des accidents se produit par temps sec, là où la vigilance des conducteurs peut parfois se relâcher.
+
+#### Visualisation de la gravité des accidents selon l’état de la chaussée
+
+```{r}
+ggplot(df_accidents_chaussee, aes(x = Etat_chaussee, fill = Accident_grave)) +
+  geom_bar(
+    position = position_fill(reverse = TRUE),
+    alpha = 0.9,
+    width = 0.7
+  ) +
+  
+  scale_y_continuous(labels = scales::label_percent()) +
+  
+  scale_fill_manual(
+    values = c("Grave" = "#E63946", "Non grave" = "#A8DADC"),
+    breaks = c("Grave", "Non grave"),
+    name = "Gravité de l'accident"
+  ) +
+  
+  labs(
+    title = "Proportion d'accidents graves selon l'état de la chaussée",
+    subtitle = "Les conditions extrêmes augmentent-elles la gravité des sinistres ?",
+    x = "État de la chaussée",
+    y = "Pourcentage d'accidents"
+  ) + 
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, face = "bold"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = "top",
+    plot.title = element_text(face = "bold", size = 14)
+  )
+```
+Ce graphique montre la proportion d'accidents graves selon l'état de la chaussée. On observe que sur une chaussée mouillée, normale ou enneigée, la grande majorité des sinistres reste non grave, maintenant un taux de gravité relativement stable et bas (autour de 15% à 25%).
+
+La situation la plus dangereuse est mise en évidence par le pic absolu de gravité du graphique : il s'agit de la chaussée avec de la boue, où la proportion d'accidents graves bondit pour atteindre près de 45%. Cela montre que si ces conditions extrêmes sont statistiquement très rares en nombre absolu, elles augmentent de manière drastique la dangerosité des sinistres une fois qu'ils surviennent, en raison d'une perte de contrôle totale du véhicule.
+
+
+### Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ?
+
+Pour répondre à cette question, je propose d’utiliser trois graphiques complémentaires :
+
+- un diagramme en barres du nombre d’accidents par météo, pour analyser la fréquence ;
+- un diagramme en barres du taux d’accidents graves, pour évaluer la gravité ;
+- un diagramme en barres empilées à 100 %, pour observer la répartition de la gravité des usagers selon la météo.
+
+
+
+#### Création d’un jeu de données enrichi avec des variables météo et gravité
+```{r include=FALSE}
+# Question: 6 -  Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ?
+
+
+# Reclassification des conditions météorologiques en catégories lisibles
+weather <- df %>%
+  filter(!is.na(atm), atm != -1, !is.na(grav), grav != -1) %>%
+  mutate(
+    meteo = case_when(
+      atm == 1 ~ "Normale",
+      atm == 2 ~ "Pluie legere",
+      atm == 3 ~ "Pluie forte",
+      atm == 4 ~ "Neige / grele",
+      atm == 5 ~ "Brouillard / fumee",
+      atm == 6 ~ "Vent fort / tempete",
+      atm == 7 ~ "Temps eblouissant",
+      atm == 8 ~ "Temps couvert",
+      atm == 9 ~ "Autre",
+      TRUE ~ NA_character_
+    ),
+    gravite_usager = factor(
+      case_when(
+        grav == 1 ~ "Indemne",
+        grav == 4 ~ "Blesse leger",
+        grav == 3 ~ "Hospitalise",
+        grav == 2 ~ "Tue",
+        TRUE ~ "Inconnu"
+      ),
+      levels = c("Indemne", "Blesse leger", "Hospitalise", "Tue") # factor param
+    ),
+    # Indicateur binaire : vrai si l’usager est gravement blessé ou décédé
+    accident_grave_usager = grav %in% c(2, 3)
+  )
+
+# Agrégation au niveau de chaque accident et condition météo
+q6_accident <- weather %>%
+  group_by(Num_Acc, meteo) %>%
+  summarise(
+    # Un accident est considéré grave si au moins un usager est gravement blessé ou décédé
+    accident_grave = any(accident_grave_usager),
+    # Un accident est considéré mortel s’il y a au moins un décès
+    accident_mortel = any(grav == 2),
+    .groups = "drop"
+  )
+
+
+# Résumé des accidents par condition météorologique
+meteo_resume <- q6_accident %>%
+  group_by(meteo) %>%
+  summarise(
+    # Nombre total d’accidents pour chaque condition météo
+    n_accidents = n(),
+    # Part des accidents dans chaque catégorie météo
+    part_accidents = n() / nrow(q6_accident),
+    # Taux d’accidents graves
+    taux_gravite = mean(accident_grave),
+    # Taux d’accidents mortels
+    taux_mortalite = mean(accident_mortel),
+    .groups = "drop"
+  ) %>%
+  mutate(meteo = factor(meteo, levels = meteo_levels)) %>%
+  arrange(meteo)
+
+profil_usagers <- weather %>%
+  count(meteo, gravite_usager) %>%
+  group_by(meteo) %>%
+  mutate(part = n / sum(n)) %>%
+  ungroup() %>%
+  mutate(meteo = factor(meteo, levels = meteo_levels))
+```
+
+
+```{r}
+tableau_resume <- meteo_resume %>%
+  mutate(
+    `Nombre d'accidents` = number(n_accidents),
+    `Part des accidents` = percent(part_accidents),
+    `Taux d'accidents graves` = percent(taux_gravite),
+    `Taux d'accidents mortels` = percent(taux_mortalite)
+  ) %>%
+  select(
+    `Condition meteorologique` = meteo,
+    `Nombre d'accidents`,
+    `Part des accidents`,
+    `Taux d'accidents graves`,
+    `Taux d'accidents mortels`
+  )
+kable(tableau_resume, align = c("l", "r", "r", "r", "r"))
+```
+
+```{r include=TRUE}
+ggplot(meteo_resume, aes(x = reorder(meteo, -n_accidents), y = n_accidents, fill = meteo)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  scale_y_continuous(labels = number) +
+  scale_fill_manual(values = meteo_palette, drop = FALSE) +
+  labs(
+    title = "Nombre d'accidents selon la meteo",
+    subtitle = "France, 2020-2024",
+    x = "Condition meteorologique",
+    y = "Nombre d'accidents"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+```
+
+Ce graphique montre que la majorité des accidents se produit sous une météo normale. Cela ne signifie pas que ces conditions sont les plus dangereuses, mais plutôt qu’elles sont les plus fréquentes au moment des déplacements. À l’inverse, les situations de pluie, de brouillard ou de neige apparaissent moins souvent en nombre absolu, mais elles peuvent être associées à des accidents plus graves. Il faut donc distinguer ici la fréquence des accidents et leur gravité.
+
+
+```{r graph-gravite}
+ggplot(meteo_resume, aes(x = reorder(meteo, taux_gravite), y = taux_gravite, fill = meteo)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+    geom_text(
+    aes(label = scales::percent(taux_gravite)),
+    hjust = -0.1,
+    size = 3
+  ) +
+  scale_y_continuous(labels = percent, expand = expansion(mult = c(0, 0.2))) +
+  scale_fill_manual(values = meteo_palette, drop = FALSE) +
+  coord_flip() +
+  labs(
+    title = "Part des accidents graves selon la meteo",
+    subtitle = "Un accident est dit grave s'il comprend au moins un usager tue ou hospitalise",
+    x = "Condition meteorologique",
+    y = "Taux d'accidents graves"
+  ) 
+```
+
+Ce graphique montre que la part des accidents graves varie sensiblement selon les conditions météorologiques. Les taux les plus élevés apparaissent en cas de vent fort / tempête (56,3 %), de brouillard / fumée (54,8 %) et de temps éblouissant (53,8 %), ce qui suggère qu’une visibilité dégradée ou des conditions atmosphériques plus difficiles augmentent surtout la sévérité des accidents lorsqu’ils se produisent. À l’inverse, la pluie légère présente le taux le plus faible (29,3 %), tandis que la météo normale se situe à un niveau intermédiaire (36,0 %). Il faut toutefois interpréter avec prudence les catégories les moins fréquentes, car leurs effectifs sont plus réduits.
+
+
+```{r}
+ggplot(profil_usagers, aes(x = meteo, y = part, fill = gravite_usager)) +
+  geom_col(position = "fill", width = 0.7) +
+  scale_y_continuous(labels = percent) +
+  scale_fill_manual(values = c(
+    "Indemne" = "#54A24B",
+    "Blesse leger" = "#EECA3B",
+    "Hospitalise" = "#E45756",
+    "Tue" = "#B279A2"
+  )) +
+  labs(
+    title = "Repartition de la gravite des usagers selon la meteo",
+    x = "Condition meteorologique",
+    y = "Part des usagers",
+    fill = "Gravite"
+  ) +
+  coord_flip() 
+```
+
+Ce graphique complete l'analyse precedente en s'interessant non plus aux accidents, mais a la gravite des usagers impliques. On observe que sous vent fort / tempete, brouillard / fumee et temps eblouissant, la part d'usagers tues ou hospitalises est plus elevee, ce qui confirme une gravite plus importante dans ces conditions. À l'inverse, sous pluie legere, la structure est moins severe, avec une plus grande part d'usagers indemnes ou legerement blesses. Il faut toutefois rester prudent pour les categories les moins frequentes, comme « Autre » ou le vent fort / la tempete, car leurs effectifs sont plus faibles.
+
+
+### Question : Les accidents sont-ils plus graves la nuit que le jour ?
+
+#### Objectif de l'analyse :
+L'objectif est de comparer la répartition des niveaux de gravité des accidents selon les conditions d'éclairage. La variable `lum` distingue la pleine journée, l'aube/crépuscule, et plusieurs situations nocturnes (avec ou sans éclairage). Nous cherchons à déterminer si l'absence de lumière naturelle est associée à des accidents proportionnellement plus mortels.
+
+```{r lum_data_prep}
+df_lum <- df %>%
+  filter(lum %in% c(1, 2, 3, 4, 5),
+         grav %in% c(1, 2, 3, 4)) %>%
+  mutate(
+    lum_label = factor(lum,
+      levels = c(1, 2, 3, 4, 5),
+      labels = c("Plein jour", "Crépuscule/Aube", "Nuit sans éclairage",
+                 "Nuit avec éclairage non allumé", "Nuit avec éclairage allumé")),
+    grav_label = factor(grav,
+      levels = c(1, 4, 3, 2),
+      labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(lum_label, grav_label) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(lum_label) %>%
+  mutate(
+    pct = n / sum(n),
+    dangerosite = sum(pct[grav_label %in% c("Tué", "Blessé hospitalisé")])
+  ) %>%
+  ungroup() %>%
+  mutate(lum_label = reorder(lum_label, dangerosite))
+```
+
+```{r lum_plot}
+ggplot(df_lum, aes(x = pct, y = lum_label, fill = grav_label)) +
+  geom_col(position = "stack", width = 0.7) +
+  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0)) +
+  scale_fill_manual(
+    values = c(
+      "Indemne"               = "#cbd5e1",
+      "Blessé léger"          = "#fef08a",
+      "Blessé hospitalisé"    = "#f97316",
+      "Tué"                   = "#b91c1c"
+    ),
+    breaks = c("Tué", "Blessé hospitalisé", "Blessé léger", "Indemne")
+  ) +
+  labs(
+    title    = "Gravité des accidents selon les conditions d'éclairage",
+    subtitle = "Conditions classées par ordre croissant de dangerosité",
+    x        = "Proportion au sein de la condition d'éclairage (Total = 100%)",
+    y        = "Condition d'éclairage",
+    fill     = "Niveau de gravité"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    legend.position = "top",
+    legend.title  = element_text(face = "bold", size = 9.5),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor   = element_blank(),
+    axis.text = element_text(color = "#334155", size = 9.5)
+  )
+```
+
+#### Analyse des résultats :
+Ce graphique en barres empilées à 100% permet de comparer directement la sévérité des accidents selon les conditions d'éclairage, classées automatiquement de la plus dangereuse (en haut) à la moins dangereuse (en bas).
+
+La **nuit sans éclairage** ressort comme la condition la plus meurtrière : la part de tués et de blessés hospitalisés y est nettement plus élevée que dans les autres situations. L'absence totale d'éclairage réduit drastiquement la visibilité, les temps de réaction et la capacité à anticiper les obstacles.
+
+La **nuit avec éclairage non allumé** présente également une gravité élevée, probablement due à une fausse impression de sécurité chez les conducteurs qui supposent un éclairage fonctionnel.
+
+À l'inverse, les accidents en **plein jour** affichent le profil le plus favorable, avec la proportion d'indemnes et de blessés légers la plus importante. Les **accidents de crépuscule/aube** se situent dans une position intermédiaire, ce qui confirme que la visibilité dégradée, même partielle, suffit à augmenter la dangerosité.
+
+La nuit, et plus particulièrement sans éclairage public, est donc bien associée à des accidents significativement plus graves. L'éclairage routier joue un rôle protecteur mesurable sur la sévérité des blessures.
+
+
+## III. Les acteurs de l'accidents : Usagers, Vehicules et comportements
+
+
+#### Quelle est la répartition des victimes par âge et par sexe ?
+
+Pour répondre à cette question, j’utilise un diagramme en barres groupées.
+
+Avant de réaliser le graphique, nous proposons de répartir les victimes en plusieurs classes d’âge afin de rendre l’analyse plus lisible :
+
+- 0-14 ans ;
+- 15-24 ans ;
+- 25-34 ans ;
+- 35-44 ans ;
+- 45-54 ans ;
+- 55-64 ans ;
+- 65-74 ans ;
+- 75 ans et plus.
+
+Cette organisation permet de comparer plus facilement le nombre de victimes selon l’âge et le sexe.
+
+#### Création d’un jeu de données des victimes par classe d’âge et par sexe
+
+```{r}
+df_victimes_age_sexe <- df %>%
+  filter(
+    grav %in% c(2, 3, 4),      # On garde seulement les victimes
+    !is.na(sexe),              # On enlève les valeurs manquantes du sexe
+    sexe %in% c(1, 2),         # 1 = Masculin, 2 = Féminin
+    !is.na(an),                # Année de l'accident
+    !is.na(an_nais),           # Année de naissance
+    an_nais > 1900,            # On enlève les années incohérentes
+    an_nais <= an              # La naissance doit être avant l'accident
+  ) %>%
+  mutate(
+    sexe_label = factor(
+      sexe,
+      levels = c(1, 2),
+      labels = c("Masculin", "Féminin")
+    ),
+    
+    age = an - an_nais,
+    
+    classe_age = cut(
+      age,
+      breaks = c(0, 14, 24, 34, 44, 54, 64, 74, 120),
+      labels = c(
+        "0-14 ans",
+        "15-24 ans",
+        "25-34 ans",
+        "35-44 ans",
+        "45-54 ans",
+        "55-64 ans",
+        "65-74 ans",
+        "75 ans et plus"
+      ),
+      right = TRUE
+    )
+  ) %>%
+  filter(!is.na(classe_age)) %>%
+  group_by(classe_age, sexe_label) %>%
+  summarise(
+    nb_victimes = n(),
+    .groups = "drop"
+  )
+```
+
+#### Visualisation des victimes par âge et par sexe
+```{r}
+ggplot(df_victimes_age_sexe, aes(x = classe_age, y = nb_victimes, fill = sexe_label)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(
+    values = c(
+    "Masculin" = "steelblue",
+    "Féminin" = "pink"
+    )
+  ) +
+  labs(
+    title = "Répartition des victimes par âge et par sexe",
+    subtitle = "Victimes blessées ou tuées dans les accidents",
+    x = "Classe d'âge",
+    y = "Nombre de victimes",
+    fill = "Sexe"
+  ) +
+  theme_classic()
+```
+Ce graphique montre la répartition des victimes par âge et par sexe. On observe une surreprésentation massive des jeunes, avec un pic critique chez les 15-24 ans, suivi d'une baisse progressive vers les tranches d'âge supérieures.
+
+L'écart entre les genres est flagrant : les hommes sont systématiquement plus touchés que les femmes. Néanmoins, les courbes masculine et féminine évoluent de manière strictement parallèle, augmentant et diminuant proportionnellement sur la quasi-totalité de l'axe. Ce constat montre que malgré la vulnérabilité accrue des hommes, l'évolution du risque routier selon l'âge reste identique pour les deux sexes.
+
+### Les motos ont-elles un taux de gravité plus élevé ?
+
+```{r}
+df_plot <- df %>%
+  #On filtre pour ne garder que Voitures (7) et Motos/Scooters
+  filter(catv %in% c(7, 30, 31, 32, 33, 34)) %>%
+  
+  #On transforme les chiffres en mots explicites
+  mutate(
+    Type_Vehicule = ifelse(catv == 7, "Voiture", "Moto"),
+    Gravite_Label = case_when(
+      grav == 1 ~ "Indemne",
+      grav == 2 ~ "Tué",
+      grav == 3 ~ "Blessé Hosp.",
+      grav == 4 ~ "Blessé Léger"
+    ),
+  
+    Gravite_Label = factor(Gravite_Label, 
+                           levels = c("Indemne", "Blessé Léger", "Blessé Hosp.", "Tué"))
+  )
+
+library(scales)
+
+ggplot(df_plot, aes(x = Type_Vehicule, fill = Gravite_Label)) +
+  geom_bar(position = "fill") + 
+  scale_y_continuous(labels = percent) + 
+  scale_fill_brewer(palette = "Reds") + 
+  labs(title = "Répartition de la gravité par type de véhicule",
+       subtitle = "Comparaison en pourcentage (Proportions relatives)",
+       x = "Catégorie de véhicule",
+       y = "Proportion des accidents",
+       fill = "Gravité") +
+  theme_minimal()
+```
+
+Le graphique montre très clairement que les accidents de moto sont proportionnellement beaucoup plus graves que les accidents de voiture. La probabilité de s'en sortir indemne est drastiquement plus faible en deux-roues.
+
+### Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ?
+
+#### Préparation des données
+
+On conserve uniquement les colonnes utiles (`manv`, `col`, `grav`) et on filtre les valeurs
+manquantes ou non renseignées (codées `-1` ou `0`).
+
+```{r preparation}
+# Correspondances manœuvre (manv)
+labels_manv <- c(
+  "1"  = "Sans chgt direction",
+  "2"  = "Même sens, même file",
+  "3"  = "Entre 2 files",
+  "4"  = "En marche arrière",
+  "5"  = "À contresens",
+  "6"  = "En franchissant méd.",
+  "7"  = "Dans couloir bus",
+  "8"  = "Insertion voie",
+  "9"  = "Fait demi-tour",
+  "10" = "Change de file (G)",
+  "11" = "Change de file (D)",
+  "12" = "Dépasse à gauche",
+  "13" = "Dépasse à droite",
+  "14" = "Tourne à gauche",
+  "15" = "Tourne à droite",
+  "16" = "Dépasse piéton",
+  "17" = "Perd contrôle",
+  "18" = "Évite obstacle",
+  "19" = "Porte ouverte",
+  "20" = "Arrêté (hors urgence)",
+  "21" = "Arrêté (urgence)",
+  "22" = "Autre manœuvre"
+)
+
+# Correspondances type de collision (col)
+labels_col <- c(
+  "1" = "Deux véh. – frontale",
+  "2" = "Deux véh. – arrière",
+  "3" = "Deux véh. – côté",
+  "4" = "Trois véh. – chaîne",
+  "5" = "Trois véh. – cols. mult.",
+  "6" = "Autre collision",
+  "7" = "Sans collision"
+)
+
+# Correspondances gravité (grav)
+labels_grav <- c(
+  "1" = "Indemne",
+  "2" = "Tué",
+  "3" = "Hospitalisé",
+  "4" = "Blessé léger"
+)
+
+df_collision <- df %>%
+  select(manv, col, grav) %>%
+  filter(
+    !is.na(manv), manv > 0,
+    !is.na(col),  col  > 0,
+    !is.na(grav), grav > 0
+  ) %>%
+  mutate(
+    manv_label = recode(as.character(manv), !!!labels_manv, .default = "Inconnu"),
+    col_label  = recode(as.character(col),  !!!labels_col,  .default = "Inconnu"),
+    grav_label = recode(as.character(grav), !!!labels_grav, .default = "Inconnu"),
+    # Variable binaire : grave si tué ou hospitalisé
+    grave = grav %in% c(2, 3)
+  )
+
+glimpse(df_collision)
+```
+
+---
+
+
+
+#### Répartition de la gravité par type de collision
+
+```{r col_gravite_stacked}
+df_col <- df_collision %>%
+  count(col_label, grav_label) %>%
+  group_by(col_label) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(
+    col_label  = fct_reorder(col_label, n, .fun = sum, .desc = TRUE),
+    grav_label = factor(grav_label, levels = c("Tué", "Hospitalisé", "Blessé léger", "Indemne"))
+  )
+
+ggplot(df_col, aes(x = col_label, y = pct, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Tué"          = "#d62728",
+      "Hospitalisé"  = "#ff7f0e",
+      "Blessé léger" = "#aec7e8",
+      "Indemne"      = "#2ca02c"
+    ),
+    name = "Gravité"
+  ) +
+  labs(
+    title    = "Gravité des accidents selon le type de collision",
+    subtitle = "En % des usagers impliqués, 2020–2024",
+    x        = "Type de collision",
+    y        = "Part (%)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1))
+```
+
+#### Taux d'accidents graves (tués + hospitalisés) par type de collision
+
+```{r col_taux_grave}
+df_col_grave <- df_collision %>%
+  group_by(col_label) %>%
+  summarise(
+    total       = n(),
+    nb_graves   = sum(grave),
+    taux_grave  = nb_graves / total * 100
+  ) %>%
+  mutate(col_label = fct_reorder(col_label, taux_grave))
+
+ggplot(df_col_grave, aes(x = col_label, y = taux_grave, fill = taux_grave)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  geom_text(
+    aes(label = paste0(round(taux_grave, 1), "%")),
+    hjust = -0.1, size = 3.5
+  ) +
+  scale_fill_gradient(low = "#fdae61", high = "#d73027") +
+  coord_flip(ylim = c(0, max(df_col_grave$taux_grave) * 1.15)) +
+  labs(
+    title    = "Taux d'accidents graves par type de collision",
+    subtitle = "Tués + hospitalisés / total usagers impliqués",
+    x        = NULL,
+    y        = "Taux de gravité (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+---
+
+#### Analyse par type de manœuvre
+
+#### Les 10 manœuvres les plus fréquentes
+
+```{r manv_frequence}
+top10_manv <- df_collision %>%
+  count(manv_label, sort = TRUE) %>%
+  slice_head(n = 10) %>%
+  pull(manv_label)
+```
+
+#### Taux de gravité pour les 10 manœuvres les plus fréquentes
+
+```{r manv_taux_grave}
+df_manv_grave <- df_collision %>%
+  filter(manv_label %in% top10_manv) %>%
+  group_by(manv_label) %>%
+  summarise(
+    total      = n(),
+    nb_graves  = sum(grave),
+    taux_grave = nb_graves / total * 100
+  ) %>%
+  mutate(manv_label = fct_reorder(manv_label, taux_grave))
+
+ggplot(df_manv_grave, aes(x = manv_label, y = taux_grave, fill = taux_grave)) +
+  geom_col(width = 0.7, show.legend = FALSE) +
+  geom_text(
+    aes(label = paste0(round(taux_grave, 1), "%")),
+    hjust = -0.1, size = 3.5
+  ) +
+  scale_fill_gradient(low = "#fee090", high = "#a50026") +
+  coord_flip(ylim = c(0, max(df_manv_grave$taux_grave) * 1.15)) +
+  labs(
+    title    = "Taux de gravité selon la manœuvre (Top 10 les plus fréquentes)",
+    subtitle = "Tués + hospitalisés / total usagers impliqués, 2020–2024",
+    x        = NULL,
+    y        = "Taux de gravité (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+#### Répartition de la gravité par manœuvre (barres empilées)
+
+```{r manv_gravite_stacked}
+df_manv_stack <- df_collision %>%
+  filter(manv_label %in% top10_manv) %>%
+  count(manv_label, grav_label) %>%
+  group_by(manv_label) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(
+    grav_label = factor(grav_label, levels = c("Tué", "Hospitalisé", "Blessé léger", "Indemne"))
+  )
+
+# Ordre des manœuvres basé sur le taux de cas graves (tué + hospitalisé)
+ordre_manv <- df_manv_stack %>%
+  filter(grav_label %in% c("Tué", "Hospitalisé")) %>%
+  group_by(manv_label) %>%
+  summarise(pct_grave = sum(pct)) %>%
+  arrange(pct_grave) %>%
+  pull(manv_label)
+
+df_manv_stack <- df_manv_stack %>%
+  mutate(manv_label = factor(manv_label, levels = ordre_manv))
+
+ggplot(df_manv_stack, aes(x = manv_label, y = pct, fill = grav_label)) +
+  geom_col(width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Tué"          = "#d62728",
+      "Hospitalisé"  = "#ff7f0e",
+      "Blessé léger" = "#aec7e8",
+      "Indemne"      = "#2ca02c"
+    ),
+    name = "Gravité"
+  ) +
+  coord_flip() +
+  labs(
+    title    = "Répartition de la gravité selon la manœuvre (Top 10)",
+    subtitle = "En % des usagers impliqués, 2020–2024",
+    x        = NULL,
+    y        = "Part (%)"
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+---
+
+#### Croisement manœuvre × type de collision
+
+On s'intéresse au taux de gravité pour les combinaisons les plus fréquentes.
+
+```{r croisement_heatmap}
+df_cross <- df_collision %>%
+  filter(manv_label %in% top10_manv) %>%
+  group_by(manv_label, col_label) %>%
+  summarise(
+    total      = n(),
+    taux_grave = sum(grave) / n() * 100,
+    .groups    = "drop"
+  ) %>%
+  filter(total >= 50)   # On garde les combinaisons suffisamment représentées
+
+ggplot(df_cross, aes(x = col_label, y = manv_label, fill = taux_grave)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = paste0(round(taux_grave, 0), "%")), size = 3) +
+  scale_fill_gradient(
+    low  = "#ffffb2",
+    high = "#bd0026",
+    name = "Taux\ngravité (%)"
+  ) +
+  labs(
+    title    = "Taux de gravité : croisement manœuvre × type de collision",
+    subtitle = "Combinaisons avec au moins 50 cas, 2020–2024",
+    x        = "Type de collision",
+    y        = "Manœuvre"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1))
+```
+
+
+
+#### Conclusions
+
+- **Type de collision** : Les collisions **frontales** sont systématiquement les plus mortelles, 
+  suivies des collisions impliquant plusieurs véhicules. Les accidents **sans collision** 
+  (sorties de route) présentent également un taux de gravité élevé.
+
+- **Manœuvre** : Les manœuvres à risque élevé sont typiquement la **perte de contrôle**, 
+  le **demi-tour** et les **changements de file**. Les manœuvres sans changement de direction 
+  dominent en fréquence mais pas forcément en gravité relative.
+
+- **Croisement** : Certaines combinaisons manœuvre × collision (ex. perte de contrôle + 
+  collision frontale) concentrent les accidents les plus graves et méritent une attention 
+  particulière des politiques de prévention.
+
+ **Limite** : Le taux de gravité mesuré ici est par **usager impliqué**, pas par accident. 
+Les accidents multi-victimes peuvent biaiser légèrement les comparaisons entre types.
+
+
+## IV. Bilan de gravité et facteurs aggravants
+
+### Question : Les équipements de sécurité (ceinture, casque) réduisent-ils la gravité ?
+
+#### Objectif de l'analyse :
+
+L'objectif est d'évaluer l'efficacité des équipements de sécurité de base (ceinture pour les voitures, casque pour les deux-roues motorisés) sur la survie et la gravité des blessures lors d'un accident. Pour cela, nous comparons la proportion d'accidents graves lorsque l'équipement est utilisé par rapport aux cas où il ne l'est pas.
+
+```{r securite_gravite}
+# Préparation des données pour l'analyse des équipements de sécurité
+df_secu <- df %>%
+  filter(
+    grav %in% c(1, 2, 3, 4),
+    catv %in% c(7, 30, 31, 32, 33, 34) # 7 = Voiture, 30-34 = Motos/Scooters
+  ) %>%
+  mutate(
+    type_vehicule = ifelse(catv == 7, "Voiture", "Moto"),
+    
+    # On vérifie si l'équipement est présent (Ceinture pour la voiture, Casque ou Casque+Gants pour la moto)
+    porte_protection = ifelse(
+      (type_vehicule == "Voiture" & secu1 == 1) | (type_vehicule == "Moto" & secu1 %in% c(2, 7)),
+      "Equipé",
+      "Non équipé / Inconnu"
+    ),
+    
+    grav_label = factor(grav, 
+                        levels = c(1, 4, 3, 2), 
+                        labels = c("Indemne", "Blessé léger", "Blessé hospitalisé", "Tué"))
+  ) %>%
+  group_by(type_vehicule, porte_protection, grav_label) %>%
+  summarise(n = n(), .groups = 'drop') %>%
+  group_by(type_vehicule, porte_protection) %>%
+  mutate(pct = n / sum(n))
+
+# Création du graphique en barres empilées avec facettes
+ggplot(df_secu, aes(x = porte_protection, y = pct, fill = grav_label)) +
+  geom_col(width = 0.6) +
+  facet_wrap(~ type_vehicule, scales = "free_x") + 
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(
+    values = c(
+      "Indemne"               = "#cbd5e1",
+      "Blessé léger"          = "#fef08a",
+      "Blessé hospitalisé"    = "#f97316",
+      "Tué"                   = "#b91c1c"
+    ),
+    name = "Gravité"
+  ) +
+  labs(
+    title    = "Impact des équipements de sécurité sur la gravité des blessures",
+    subtitle = "Comparaison de la sévérité selon le port de la protection (Ceinture ou Casque)",
+    x        = "Port de l'équipement de protection",
+    y        = "Proportion des usagers"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    strip.text = element_text(face = "bold", size = 12, color = "#0f172a"),
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
+    panel.grid.major.x = element_blank(),
+    legend.position = "top"
+  )
+```
+
+#### Analyse des résultats :
+
+Ce graphique etait sensé montrer l'importance des équipement de sécurités quant à la gravité des accidents. On voit nettement que la ceintue de sécurité sur les voitures reduit considérablement le risque d'accident grave. Par contre, pour les motos il est étrangement égale en terme de gravité de porter des protections ou non. Cela nous amène a préciser que la proportion de personne ayant eu un accident et n'étant pas munis de la ceinture de sécurité pour les voitures ou du casque pour les motos est très faible.
+
+### Synthèse : Taux d'utilisation des équipements de sécurité
+
+Afin de compléter l'analyse précédente, voici la répartition globale des usagers impliqués selon qu'ils étaient équipés ou non au moment de l'accident.
+
+```{r taux_equipement}
+df_taux <- df_secu %>%
+  group_by(type_vehicule, porte_protection) %>%
+  summarise(n = sum(n), .groups = 'drop') %>%
+  group_by(type_vehicule) %>%
+  mutate(pct = n / sum(n))
+
+ggplot(df_taux, aes(x = type_vehicule, y = pct, fill = porte_protection)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = scales::percent(pct, accuracy = 0.1)), 
+            position = position_dodge(width = 0.7), vjust = -0.5, fontface = "bold") +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1.1)) +
+  scale_fill_manual(values = c("Equipé" = "#2a9d8f", "Non équipé / Inconnu" = "#e76f51")) +
+  labs(
+    title = "Taux d'utilisation des équipements de sécurité",
+    subtitle = "Proportion d'usagers équipés (ceinture/casque) vs non équipés",
+    x = "Catégorie de véhicule",
+    y = "Part des usagers",
+    fill = "État de l'équipement"
+  ) +
+  theme_minimal()
+```
+
+Comme on peut le voir, le taux d'équipement déclaré est très élevé dans les deux catégories, dépassant les 80% pour les voitures et approchant les 90% pour les motos. Cette prédominance massive du groupe "Équipé" explique pourquoi les comparaisons avec le groupe "Non équipé" doivent être manipulées avec précaution, les effectifs de ce dernier étant beaucoup plus réduits et potentiellement sujets à des biais. En effet, le port d'équipement de sécurité tel que la ceinture ou le casque et gants en moto sont obligatoires. Ainsi, les rares personnes ne mettant pas leur équipement de sécurité savent qu'ils sont dans l'illégalité. On peut supposer que les trajets faits sans ceinture en voiture par exemple sont de très courtes distance en roulant à des vitesses réduites. 
+
+Il faut donc interpréter ces résultats avec attention pour éviter toute erreur de compréhension.
+
+### Question : Existe-t-il un seuil (âge ou vitesse) où la gravité explose ?
+
+#### Objectif de l'analyse :
+
+L'objectif est d'explorer la corrélation entre l'âge du conducteur, la vitesse maximale autorisée sur le lieu de l'accident, et la gravité des blessures. Nous utilisons une **carte de chaleur (Heatmap)** pour observer le **taux de gravité** (pourcentage d'accidents graves) pour chaque combinaison d'âge et de vitesse. 
+
+```{r age_vitesse_heatmap}
+# Préparation des données pour la heatmap
+df_heat <- df %>%
+  filter(place == 1, # Conducteurs uniquement
+         !is.na(an_nais), an_nais > 1900,
+         !is.na(vma), vma > 0, vma <= 130,
+         !vma %in% c(20, 25, 40, 60)) %>% # On retire les vitesses rares (20, 40)
+  mutate(age = an - an_nais) %>%
+  filter(age >= 18, age < 90) %>%
+  mutate(
+    # On crée des tranches d'âge de 5 ans pour plus de lisibilité
+    age_bin = cut(age, breaks = seq(15, 90, by = 5), right = FALSE, 
+                  labels = paste(seq(15, 85, by = 5), seq(19, 89, by = 5), sep="-")),
+    # On simplifie les vitesses en facteurs
+    vma_grp = factor(vma)
+  ) %>%
+  group_by(age_bin, vma_grp) %>%
+  summarise(
+    total = n(),
+    taux_grave = mean(grav %in% c(2, 3)) * 100, # % de Tués + Hospitalisés
+  ) %>%
+  # On retire les combinaisons très rares (moins de 30 cas) pour éviter le bruit statistique
+  filter(total > 30)
+
+# Création de la Heatmap
+ggplot(df_heat, aes(x = age_bin, y = vma_grp, fill = taux_grave)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  scale_fill_gradient(low = "#fee0d2", high = "#a50026", name = "% Grave\n(Tués+Hosp.)") +
+  labs(
+    title    = "Taux de gravité par âge et vitesse autorisée",
+    subtitle = "Pourcentage de blessés graves ou tués parmi les conducteurs impliqués",
+    x        = "Tranches d'âge du conducteur",
+    y        = "Vitesse maximale autorisée (km/h)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid = element_blank(),
+    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
+  )
+```
+
+#### Analyse des résultats :
+
+On remarque aisément une ligne plus rouge lorsque la vitesse maximale autorisée est de 80 km/h. Cela peut s'expliquer par le fait que ces routes sont souvent des routes départementales qui sont généralements dépourvues de barrières de sécurité et sur les quelles il est courant de dépasser la vitesse limite. Elles sont parfois synueuses et males entretenues. A l'inverse, les lignes des routes en agglomération (vitesse limité à 50 km/h ou moins) sont très claires, ce qui confirme que les accidents en agglomérations sont moins grave quelque soit l'age. Enfin, à partir de 90km/h on peut observer que les personnes agées à partir de 65 ans ont des accidents plus graves.
+
+Dans la **shiny app**, nous avons décidé de présenter cette carte de chaleur de manière interactive et nous avons rendu possible le fait de filtrer les accidents par hommes ou femmes ou voiture et deux roues. Ces options sont très pertinentes puisqu'elles permettent de mettre en évidence que les jeunes conducteurs hommes font des accidents en moyenne plus graves que les jeunes conductrices filles. Le graphique est cliquable et on peut précisément voir le taux d'accidents graves. 
+
+
+
+

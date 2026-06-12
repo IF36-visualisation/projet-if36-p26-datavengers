@@ -625,7 +625,6 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
     x = "",
     y = "Nombre d'usagers impliqués",
     fill = "Niveau de gravité",
-    caption = "Source : Données BAAC 2020-2024"
   ) +
   theme_minimal()
   

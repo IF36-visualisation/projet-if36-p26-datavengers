@@ -1201,9 +1201,11 @@ La nuit, et plus particulièrement sans éclairage public, est donc bien associ�
 ## III. Les acteurs de l'accidents : Usagers, Vehicules et comportements
 
 
-#### Quelle est la répartition des victimes par âge et par sexe ?
+### Quelle est la répartition des victimes par âge et par sexe ?
 
-Pour répondre à cette question, nous utilisons un diagramme en barres groupées.
+#### Objectif de l'analyse
+
+Afin de dresser le profil type des victimes, nous utilisons un diagramme en barres groupées croisant les classes d'âge et le sexe des usagers blessés ou tués. Les couleurs bleu et rose différencient le genre pour faciliter la lecture. Nous nous attendons à observer une forte surreprésentation des jeunes adultes, particulièrement masculins, reflétant une exposition au risque historiquement plus élevée dans cette démographie.
 
 Avant de réaliser le graphique, nous proposons de répartir les victimes en plusieurs classes d’âge afin de rendre l’analyse plus lisible :
 
@@ -1287,6 +1289,10 @@ L'écart entre les genres est flagrant : les hommes sont systématiquement plus 
 
 ### Les motos ont-elles un taux de gravité plus élevé ?
 
+#### Objectif de l'analyse
+
+Pour évaluer la vulnérabilité structurelle des usagers de deux-roues motorisés, nous utilisons un diagramme en barres empilées à 100 % comparant la gravité des sinistres entre les voitures et les motos. L'encodage visuel s'appuie sur un dégradé de rouges illustrant l'intensité de la gravité. Nous anticipons une proportion de décès et d'hospitalisations drastiquement supérieure pour les motards, liée à l'absence de protection de l'habitacle.
+
 ```{r}
 df_plot <- df %>%
   #On filtre pour ne garder que Voitures (7) et Motos/Scooters
@@ -1324,9 +1330,11 @@ Le graphique montre très clairement que les accidents de moto sont proportionne
 
 ### Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ?
 
+#### Objectif de l'analyse
 
-On conserve uniquement les colonnes utiles (`manv`, `col`, `grav`) et on filtre les valeurs
-manquantes ou non renseignées (codées `-1` ou `0`).
+Pour comprendre la dynamique physique des crashs, nous croisons la manœuvre initiale avec le type de collision final à travers plusieurs diagrammes en barres et une carte de chaleur (heatmap). Les couleurs de la heatmap évoluent du jaune (gravité modérée) au rouge sombre (gravité critique). Nous cherchons à vérifier l'hypothèse selon laquelle les pertes de contrôle aboutissant à un choc frontal constituent les scénarios les plus fatals.
+
+On conserve uniquement les colonnes utiles (`manv`, `col`, `grav`) et on filtre les valeurs manquantes ou non renseignées (codées `-1` ou `0`).
 
 ```{r preparation}
 # Correspondances manœuvre (manv)
@@ -1428,8 +1436,7 @@ ggplot(df_col, aes(x = col_label, y = pct, fill = grav_label)) +
   theme_minimal(base_size = 12) +
   theme(axis.text.x = element_text(angle = 35, hjust = 1))
 ```
-
-#### Taux d'accidents graves (tués + hospitalisés) par type de collision
+Ce graphique révèle que les accidents "sans collision" (comme les sorties de route) et les chocs frontaux sont de loin les plus graves, concentrant la plus forte proportion de tués et de blessés hospitalisés. À l'inverse, les collisions par l'arrière ou en chaîne sont les moins sévères : la vitesse relative au moment de l'impact étant plus faible, plus de la moitié des usagers s'en sortent totalement indemnes.
 
 ```{r col_taux_grave}
 df_col_grave <- df_collision %>%
@@ -1457,9 +1464,7 @@ ggplot(df_col_grave, aes(x = col_label, y = taux_grave, fill = taux_grave)) +
   ) +
   theme_minimal(base_size = 12)
 ```
-
-
-#### Analyse par type de manœuvre
+Ce graphique quantifie précisément la dangerosité de chaque type d'accident, confirmant les observations précédentes. Il souligne la sévérité extrême des accidents "sans collision" (sorties de route, obstacles), où plus d'un tiers (35,1 %) des usagers impliqués sont gravement blessés ou tués, suivis de près par les chocs frontaux (26,2 %). À l'inverse, les collisions par l'arrière (9,5 %) et en chaîne (4,8 %) affichent les taux de gravité les plus faibles, démontrant que les impacts se produisant dans le même sens de circulation sont beaucoup moins létaux.
 
 
 
@@ -1499,7 +1504,7 @@ ggplot(df_manv_grave, aes(x = manv_label, y = taux_grave, fill = taux_grave)) +
   ) +
   theme_minimal(base_size = 12)
 ```
-
+Ce graphique met en évidence les manœuvres spécifiques générant le plus fort taux de gravité. Le dépassement par la droite ressort de manière alarmante comme le comportement le plus critique, entraînant des blessures graves ou mortelles dans plus d'un tiers des cas (35,5 %). Les actions cisaillant les voies de circulation opposées, comme tourner à gauche (29,7 %), ou les trajectoires subies comme la perte de contrôle (26,7 %) sont également extrêmement létales. À l'inverse, les manœuvres effectuées à vitesse plus réduite ou ne croisant pas les autres flux (tourner à droite, rester dans la même file) limitent drastiquement la sévérité des blessures, avec des taux inférieurs à 11 %.
 
 ```{r manv_gravite_stacked}
 df_manv_stack <- df_collision %>%
@@ -1536,18 +1541,16 @@ ggplot(df_manv_stack, aes(x = manv_label, y = pct, fill = grav_label)) +
   ) +
   coord_flip() +
   labs(
-    title    = "Répartition de la gravité selon la manœuvre (Top 10)",
+    title    = "Répartition de la gravité selon la manœuvre",
     subtitle = "En % des usagers impliqués, 2020–2024",
     x        = NULL,
     y        = "Part (%)"
   ) +
   theme_minimal(base_size = 12)
 ```
+Ce graphique complète l'analyse en détaillant la répartition totale des blessures. Il confirme que les manœuvres les plus fatales ("Dépasse à droite", "Tourne à gauche", "Perd contrôle") laissent peu de chances d'échapper au choc, avec à peine un quart des usagers épargnés (barres vertes). À l'inverse, des actions plus lentes ou ne cisaillant pas les voies rapides, comme "Tourne à droite", permettent à la grande majorité des impliqués (plus de 60 %) de s'en tirer sans aucune blessure.
 
 
-#### Croisement manœuvre × type de collision
-
-On s'intéresse au taux de gravité pour les combinaisons les plus fréquentes.
 
 ```{r croisement_heatmap}
 df_cross <- df_collision %>%
@@ -1569,7 +1572,7 @@ ggplot(df_cross, aes(x = col_label, y = manv_label, fill = taux_grave)) +
     name = "Taux\ngravité (%)"
   ) +
   labs(
-    title    = "Taux de gravité : croisement manœuvre × type de collision",
+    title    = "Taux de gravité : manœuvre × type de collision",
     subtitle = "Combinaisons avec au moins 50 cas, 2020–2024",
     x        = "Type de collision",
     y        = "Manœuvre"
@@ -1577,7 +1580,7 @@ ggplot(df_cross, aes(x = col_label, y = manv_label, fill = taux_grave)) +
   theme_minimal(base_size = 11) +
   theme(axis.text.x = element_text(angle = 35, hjust = 1))
 ```
-
+Cette carte de chaleur confirme que la combinaison d'une manœuvre risquée et d'un choc à haute énergie cinétique crée les scénarios les plus critiques. Le summum du danger est atteint lors d'un dépassement par la droite ou d'une perte de contrôle aboutissant à une sortie de route ("sans collision") ou à un choc frontal, avec des taux de gravité frôlant ou dépassant les 40 %. À l'inverse, quelles que soient les manœuvres entreprises, les collisions par l'arrière ou en chaîne maintiennent des niveaux de gravité systématiquement bas (souvent inférieurs à 10 %), prouvant une fois de plus que les impacts se produisant dans le sens de la circulation pardonnent beaucoup plus l'erreur humaine.
 
 
 #### Conclusions

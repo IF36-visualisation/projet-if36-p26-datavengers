@@ -12,12 +12,17 @@ output:
 Dans le cadre de ce projet, nous avons exploité un jeu de données consolidé issu du fichier BAAC (Bulletin d’Analyse des Accidents Corporels). Les données sources proviennent du jeu de données officiel **[Bases de données annuelles des accidents corporels de la circulation routière - 2005 à 2024](https://www.data.gouv.fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2024)**, disponible sur la plateforme data.gouv.fr.
 
 Notre fichier principal `accidents_2020_2024.csv` a été construit pour l’analyse en fusionnant, pour chaque année de 2020 à 2024, les 4 tables BAAC suivantes :
-- `usagers`
-- `vehicules`
-- `lieux`
-- `caracteristiques`
+* `usagers`
+* `vehicules`
+* `lieux`
+* `caracteristiques`
 
 L’objectif est de mener une exploration visuelle des accidents corporels en cherchant des relations entre la gravité, le contexte routier, les profils d’usagers, les véhicules et la temporalité. Nous voulons identifier ce qui semble augmenter le risque d’accident grave, tout en restant critiques sur les limites de la donnée. 
+
+## Plan du rapport
+
+Ce rapport s'articule en plusieurs grandes parties. Tout d'abord, nous présentons la nature du dataset ainsi que ses différentes variables et leurs significations. Ensuite, dans une première grande partie, nous allons simplement tenter de prendre une vue plus globale des accidents en guise d'introduction.
+Puis, la deuxième grande partie se concentrera sur l'environnement de conduite lors des accidents pour tenter de voir si certains contextes favorisent ou non les accidents et leur gravité. Nous continuerons dans la troisième grande partie, de manière logique, en étudiant les acteurs de l'accident. Cela inclut « qui » et « comment » pour comprendre la dynamique des accidents. Enfin, dans la dernière grande partie, nous tenterons de faire un bilan sur les facteurs aggravant la gravité des accidents et les profils types.
 
 ## Structure et nature des données
 
@@ -237,7 +242,7 @@ L’analyse du graphique met en évidence une dynamique temporelle en trois phas
 ### Il y a-t-il des tendances saisonnières dans les accidents ?
 
 #### Objectif de l'analyse :
-L'objectif est d'observer la répartition du nombre d'accidents tout au long de l'année pour identifier d'éventuelles tendances saisonnières (plus d'accidents en hiver ou en été ?). Nous ajoutons également le niveau de gravité pour voir si la saisonnalité impacte non seulement la fréquence, mais aussi la sévérité des accidents (ex: conditions météorologiques hivernales).
+L'objectif est d'observer la répartition du nombre d'accidents tout au long de l'année pour identifier d'éventuelles tendances saisonnières (plus d'accidents en hiver ou en été ?). Nous ajoutons également le niveau de gravité pour voir si la saisonnalité impacte non seulement la fréquence, mais aussi la sévérité des accidents (ex: conditions météorologiques hivernales). Nous encoderons dans un dégradé de rouge les gravités des accidents.
 
 ```{r mois_gravite}
 # Préparation des données par mois et gravité
@@ -285,7 +290,7 @@ ggplot(df_mois, aes(x = mois_label, y = n, fill = grav_label)) +
 
 #### Analyse des résultats :
 
-De manière générale, on voit qu'il y a plus d'accidents durant les mois de juin juillet et septembre octobre. En été (Juillet/Août), les conditions météorologiques sont clémentes, ce qui entraîne un sentiment de sécurité et une vitesse plus élevée. Les trajets de vacances étant plus nombreux aussi sont peut-être une cause plosible de l'augmentation d'accidents. Malheureusement, nous aurions bien voulu étudier plus en détails si la localisation de l'accident etant proche ou non du lieu de domicile influe sur le nombre d'accidents. Nous aurions pu alors valider l'hypotèse des départs en vancances. Ces données entant sensible, elle ne sont pas rendues publiques.
+De manière générale, on voit qu'il y a plus d'accidents durant les mois de juin, juillet et septembre, octobre. Il est difficile de conclure quoi que ce soit. On peut quand même supposer quelques pistes. En été (juillet/août), les conditions météorologiques sont plus clémentes, ce qui entraîne sûrement un sentiment de sécurité et une vitesse plus élevée. Les trajets de vacances, étant plus nombreux, sont peut-être aussi une cause plausible de l'augmentation des accidents. Malheureusement, nous aurions bien voulu étudier plus en détails si la localisation de l'accident, étant proche ou non du lieu de domicile influe sur le nombre d'accidents. Nous aurions pu alors valider l'hypothèse des départs en vacances. Ces données entant sensibles, elles ne sont pas rendues publiques.
 
 #### À quelles heures de la journée les accidents sont-ils les plus fréquents ?
 
@@ -297,7 +302,6 @@ Nous proposons deux graphiques complémentaires :
 
 Cette double visualisation permet d’identifier les moments de la journée où le nombre d’accidents est le plus élevé.
 
-#### Création d’un jeu de données des accidents selon l’heure et la période de la journée
 
 ```{r}
 df_accidents_heure <- df %>%
@@ -546,7 +550,7 @@ On peut observer sur la carte que la majorité des points se situent bien dans l
 
 ### Les accidents en agglomération sont-ils différents de ceux hors agglomération ? (en terme de gravité et volume)
 
-Pour répondre à cette question j'ai décidé de faire un barplot (`geom_bar`) une barre pour les accidents en agglomération et une autre pour ceux hors agglomération. De plus, avec la fonction `positon = stack` on peut observer la gravité de l'accident sur les passagers/conducteurs.
+Pour répondre à cette question nous avons décidé de faire un barplot (`geom_bar`) une barre pour les accidents en agglomération et une autre pour ceux hors agglomération. De plus, avec la fonction `positon = stack` on peut observer la gravité de l'accident sur les passagers/conducteurs. 
 
 
 ```{r}
@@ -565,17 +569,18 @@ df_plot <- df %>%
 
 ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
   geom_bar(position = "stack") + # Stack permet de ne garder les proportions (plus intérressant dans le cas d'une comparaison de volume)
-  scale_fill_manual(values = c("Indemne" = "#1a9641",
-                               "Blessé léger" = "#fdae61",
-                               "Blessé hospitalisé" = "#d7191c",
-                               "Tué" = "#000000")) +
+  scale_fill_manual(values = c(
+      "Indemne"               = "#cbd5e1",
+      "Blessé léger"          = "#fef08a",
+      "Blessé hospitalisé"    = "#f97316",
+      "Tué"                   = "#b91c1c")) +
+  
+      
   labs(
     title = "Gravité des accidents : En agglomération vs hors agglomération",
-    subtitle = "La majorité des accidents ont lieu en agglomération (double)",
     x = "",
     y = "Nombre d'usagers impliqués",
     fill = "Niveau de gravité",
-    caption = "Source : Données BAAC 2020-2024"
   ) +
   theme_minimal()
   
@@ -583,7 +588,7 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
 ```
 
 
-De ce premier graphique, on peut observer une nette différence quant à la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents ont tendances à être plus grave hors agglomération. Pour observer ce phénomène de plus près, voici un second graphique similaire au premier mais en étudiant seulement les accidents graves (blessés hospitalisés et tués).
+De ce premier graphique, on peut observer une nette différence quant à la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents ont tendance à être plus graves hors agglomération. Pour observer ce phénomène de plus près, voici un second graphique similaire au premier, mais en étudiant seulement les accidents graves (blessés hospitalisés et tués). Dans ces deux graphiques, nous avons fait le choix d'encoder la gravité des accidents dans un dégradé de rouge, ce qui parrait tout à fait naturel.
 
 ```{r}
 # Deuxième df en prennant cette fois-ci uniquement les bléssés et tués
@@ -620,14 +625,14 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
 ```
 
 
-Dans ce second graphique, le resultat est clair : Les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de blessés hospitalisés est aussi supérieur (environ 4000 bléssés hospitalisé en plus soit 8,21%)
-
+Dans ce second graphique, le résultat est clair : les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de blessés hospitalisés est aussi supérieur (environ 4000 blessés hospitalisés en plus soit 8,21%). Il est important de noter que ces deux graphiques ne donnent en aucun cas d'informations concernant la cause de l'accident. Il est impossible de savoir si le simple fait de rouler hors agglomérations est plus dangereux. Peut-être s'agit-il de facteurs tiers comme le type de routes ou le nombre de voies.
 
 
 ### Le type de route influence-t-il la gravité des accidents ?
 
 #### Objectif de l'analyse :
-L'objectif est d'identifier les infrastructures routières où les accidents présentent la plus forte sévérité. En normalisant les données par type de route (proportion), nous cherchons à déterminer si le réseau routier influence intrinsèquement la gravité des chocs, indépendamment du volume de trafic global. Nous attendons de visualiser une disparité dans la répartition des niveaux de gravité, notamment pour repérer les routes affichant les taux de "Tués" ou "Blessés hospitalisés" les plus élevés.
+
+L'objectif est d'identifier les infrastructures routières où les accidents présentent la plus forte sévérité. En normalisant les données par type de route (proportion), nous cherchons à déterminer si le réseau routier influence intrinsèquement la gravité des chocs, indépendamment du volume de trafic global. Nous nous attendons à visualiser une disparité dans la répartition des niveaux de gravité, notamment pour repérer les routes affichant les taux de "Tués" ou "Blessés hospitalisés" les plus élevés.
 
 
 ```{r data_loading_marega}
@@ -806,7 +811,6 @@ Nous proposons deux graphiques complémentaires :
 
 Cette double visualisation permet de distinguer la fréquence des accidents et leur gravité selon les conditions de route.
 
-#### Création d’un jeu de données des accidents selon l’état de la chaussée et la gravité
 ```{r}
 df_accidents_chaussee <- df %>%
   filter(!is.na(surf), surf > 0, surf != 9) %>%
@@ -881,7 +885,6 @@ df_accidents_chaussee_total <- df %>%
   )
 ```
 
-#### Visualisation de la répartition des accidents selon l’état de la chaussée
 
 ```{r}
 ggplot(df_accidents_chaussee_total, aes(x = Etat_chaussee, y = pourcentage)) +
@@ -922,7 +925,6 @@ Ce graphique montre la part de chaque état de la chaussée dans le nombre total
 
 L'état le plus fréquent est mis en évidence par le pic absolu du graphique : il s'agit de la chaussée normale (80.4%), suivie de loin par la chaussée mouillée (18.7%). Cela correspond logiquement aux conditions les plus courantes lors des déplacements quotidiens, rappelant ainsi que la majorité des accidents se produit par temps sec, là où la vigilance des conducteurs peut parfois se relâcher.
 
-#### Visualisation de la gravité des accidents selon l’état de la chaussée
 
 ```{r}
 ggplot(df_accidents_chaussee, aes(x = Etat_chaussee, fill = Accident_grave)) +
@@ -962,7 +964,7 @@ La situation la plus dangereuse est mise en évidence par le pic absolu de gravi
 
 ### Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ?
 
-Pour répondre à cette question, je propose d’utiliser trois graphiques complémentaires :
+Pour répondre à cette question, nous proposons d’utiliser trois graphiques complémentaires :
 
 - un diagramme en barres du nombre d’accidents par météo, pour analyser la fréquence ;
 - un diagramme en barres du taux d’accidents graves, pour évaluer la gravité ;
@@ -970,8 +972,7 @@ Pour répondre à cette question, je propose d’utiliser trois graphiques compl
 
 
 
-#### Création d’un jeu de données enrichi avec des variables météo et gravité
-```{r include=FALSE}
+```{r}
 # Question: 6 -  Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ?
 
 
@@ -1061,7 +1062,7 @@ tableau_resume <- meteo_resume %>%
 kable(tableau_resume, align = c("l", "r", "r", "r", "r"))
 ```
 
-```{r include=TRUE}
+```{r}
 ggplot(meteo_resume, aes(x = reorder(meteo, -n_accidents), y = n_accidents, fill = meteo)) +
   geom_col(width = 0.7, show.legend = FALSE) +
   scale_y_continuous(labels = number) +
@@ -1185,6 +1186,7 @@ ggplot(df_lum, aes(x = pct, y = lum_label, fill = grav_label)) +
 ```
 
 #### Analyse des résultats :
+
 Ce graphique en barres empilées à 100% permet de comparer directement la sévérité des accidents selon les conditions d'éclairage, classées automatiquement de la plus dangereuse (en haut) à la moins dangereuse (en bas).
 
 La **nuit sans éclairage** ressort comme la condition la plus meurtrière : la part de tués et de blessés hospitalisés y est nettement plus élevée que dans les autres situations. L'absence totale d'éclairage réduit drastiquement la visibilité, les temps de réaction et la capacité à anticiper les obstacles.
@@ -1201,7 +1203,7 @@ La nuit, et plus particulièrement sans éclairage public, est donc bien associ�
 
 #### Quelle est la répartition des victimes par âge et par sexe ?
 
-Pour répondre à cette question, j’utilise un diagramme en barres groupées.
+Pour répondre à cette question, nous utilisons un diagramme en barres groupées.
 
 Avant de réaliser le graphique, nous proposons de répartir les victimes en plusieurs classes d’âge afin de rendre l’analyse plus lisible :
 
@@ -1216,7 +1218,6 @@ Avant de réaliser le graphique, nous proposons de répartir les victimes en plu
 
 Cette organisation permet de comparer plus facilement le nombre de victimes selon l’âge et le sexe.
 
-#### Création d’un jeu de données des victimes par classe d’âge et par sexe
 
 ```{r}
 df_victimes_age_sexe <- df %>%
@@ -1262,7 +1263,6 @@ df_victimes_age_sexe <- df %>%
   )
 ```
 
-#### Visualisation des victimes par âge et par sexe
 ```{r}
 ggplot(df_victimes_age_sexe, aes(x = classe_age, y = nb_victimes, fill = sexe_label)) +
   geom_col(position = "dodge") +
@@ -1324,7 +1324,6 @@ Le graphique montre très clairement que les accidents de moto sont proportionne
 
 ### Certaines manœuvres ou collisions sont-elles plus dangereuses que d’autres ?
 
-#### Préparation des données
 
 On conserve uniquement les colonnes utiles (`manv`, `col`, `grav`) et on filtre les valeurs
 manquantes ou non renseignées (codées `-1` ou `0`).
@@ -1397,7 +1396,6 @@ glimpse(df_collision)
 
 
 
-#### Répartition de la gravité par type de collision
 
 ```{r col_gravite_stacked}
 df_col <- df_collision %>%
@@ -1460,11 +1458,10 @@ ggplot(df_col_grave, aes(x = col_label, y = taux_grave, fill = taux_grave)) +
   theme_minimal(base_size = 12)
 ```
 
----
 
 #### Analyse par type de manœuvre
 
-#### Les 10 manœuvres les plus fréquentes
+
 
 ```{r manv_frequence}
 top10_manv <- df_collision %>%
@@ -1473,7 +1470,7 @@ top10_manv <- df_collision %>%
   pull(manv_label)
 ```
 
-#### Taux de gravité pour les 10 manœuvres les plus fréquentes
+
 
 ```{r manv_taux_grave}
 df_manv_grave <- df_collision %>%
@@ -1503,7 +1500,6 @@ ggplot(df_manv_grave, aes(x = manv_label, y = taux_grave, fill = taux_grave)) +
   theme_minimal(base_size = 12)
 ```
 
-#### Répartition de la gravité par manœuvre (barres empilées)
 
 ```{r manv_gravite_stacked}
 df_manv_stack <- df_collision %>%
@@ -1548,7 +1544,6 @@ ggplot(df_manv_stack, aes(x = manv_label, y = pct, fill = grav_label)) +
   theme_minimal(base_size = 12)
 ```
 
----
 
 #### Croisement manœuvre × type de collision
 
@@ -1609,7 +1604,7 @@ Les accidents multi-victimes peuvent biaiser légèrement les comparaisons entre
 
 #### Objectif de l'analyse :
 
-L'objectif est d'évaluer l'efficacité des équipements de sécurité de base (ceinture pour les voitures, casque pour les deux-roues motorisés) sur la survie et la gravité des blessures lors d'un accident. Pour cela, nous comparons la proportion d'accidents graves lorsque l'équipement est utilisé par rapport aux cas où il ne l'est pas.
+L'objectif est d'évaluer l'efficacité des équipements de sécurité de base (ceinture pour les voitures, casque pour les deux-roues motorisés) sur la survie et la gravité des blessures lors d'un accident. Pour cela, nous comparons la proportion d'accidents graves lorsque l'équipement est utilisé par rapport aux cas où il ne l'est pas. On s'attend évidemment à ce que les accidents ou les usagers ne portaient pas d'éléments de sécurité soient beaucoup plus graves.
 
 ```{r securite_gravite}
 # Préparation des données pour l'analyse des équipements de sécurité
@@ -1669,7 +1664,11 @@ ggplot(df_secu, aes(x = porte_protection, y = pct, fill = grav_label)) +
 
 #### Analyse des résultats :
 
-Ce graphique etait sensé montrer l'importance des équipement de sécurités quant à la gravité des accidents. On voit nettement que la ceintue de sécurité sur les voitures reduit considérablement le risque d'accident grave. Par contre, pour les motos il est étrangement égale en terme de gravité de porter des protections ou non. Cela nous amène a préciser que la proportion de personne ayant eu un accident et n'étant pas munis de la ceinture de sécurité pour les voitures ou du casque pour les motos est très faible.
+
+Ce graphique était censé montrer l'importance des équipements de sécurités quant à la gravité des accidents. On voit que la ceinture de sécurité sur les voitures réduit un peu le risque d'accident grave. Par contre, pour les motos, il est étrangement égal en termes de gravité de porter des protections ou non. Cela nous amène à préciser que la proportion de personne ayant eu un accident et n'étant pas munis de la ceinture de sécurité pour les voitures ou du casque + gants pour les motos est très faible. 
+
+Regardons tout de même la répartition du dataset 
+
 
 ### Synthèse : Taux d'utilisation des équipements de sécurité
 
@@ -1698,7 +1697,9 @@ ggplot(df_taux, aes(x = type_vehicule, y = pct, fill = porte_protection)) +
   theme_minimal()
 ```
 
-Comme on peut le voir, le taux d'équipement déclaré est très élevé dans les deux catégories, dépassant les 80% pour les voitures et approchant les 90% pour les motos. Cette prédominance massive du groupe "Équipé" explique pourquoi les comparaisons avec le groupe "Non équipé" doivent être manipulées avec précaution, les effectifs de ce dernier étant beaucoup plus réduits et potentiellement sujets à des biais. En effet, le port d'équipement de sécurité tel que la ceinture ou le casque et gants en moto sont obligatoires. Ainsi, les rares personnes ne mettant pas leur équipement de sécurité savent qu'ils sont dans l'illégalité. On peut supposer que les trajets faits sans ceinture en voiture par exemple sont de très courtes distance en roulant à des vitesses réduites. 
+Comme on peut le voir, le taux d'équipement déclaré est très élevé dans les deux catégories, dépassant les 80% pour les voitures et approchant les 90% pour les motos. Cette prédominance massive du groupe "Équipé" explique pourquoi les comparaisons avec le groupe "Non équipé" doivent être manipulées avec précaution, les effectifs de ce dernier étant beaucoup plus réduits et potentiellement sujets à des biais. En effet, le port d'équipement de sécurité tel que la ceinture ou le casque et gants en moto sont obligatoires. Ainsi, les rares personnes ne mettant pas leur équipement de sécurité savent qu'ils sont dans l'illégalité. On peut supposer que les trajets faits sans ceinture en voiture par exemple sont de très courtes distance en roulant à des vitesses réduites. Malheureusement, cette hypothèse n'est pas vérifiable.
+
+Aussi, une autre hypothèse pour les voitures (impossible à vérifier non plus) serait de dire que lorsqu'un usager a un accident et qu'il ne portait pas d'éléments de sécurité, il y a peu de chances qu'il le dise aux forces de l'ordre. En effet, il n'est pas possible pour les forces de l'ordre de vérifier si le conducteur ou les passagers portaient bien la ceinture de sécurité. De plus, le dire pourrait aggraver leur cas. Il s'agit là d'une hypothèse que nous ne pourrons pas vérifier, mais qui semble logique à nos yeux.
 
 Il faut donc interpréter ces résultats avec attention pour éviter toute erreur de compréhension.
 
@@ -1752,7 +1753,7 @@ ggplot(df_heat, aes(x = age_bin, y = vma_grp, fill = taux_grave)) +
 
 #### Analyse des résultats :
 
-On remarque aisément une ligne plus rouge lorsque la vitesse maximale autorisée est de 80 km/h. Cela peut s'expliquer par le fait que ces routes sont souvent des routes départementales qui sont généralements dépourvues de barrières de sécurité et sur les quelles il est courant de dépasser la vitesse limite. Elles sont parfois synueuses et males entretenues. A l'inverse, les lignes des routes en agglomération (vitesse limité à 50 km/h ou moins) sont très claires, ce qui confirme que les accidents en agglomérations sont moins grave quelque soit l'age. Enfin, à partir de 90km/h on peut observer que les personnes agées à partir de 65 ans ont des accidents plus graves.
+On remarque aisément une ligne plus rouge lorsque la vitesse maximale autorisée est de 80 km/h. Cela peut s'expliquer par le fait que ces routes sont souvent des routes départementales qui sont généralement dépourvues de barrières de sécurité et sur lesquelles il est courant de dépasser la vitesse limite. Elles sont parfois sinueuses et mal entretenues. À l'inverse, les lignes des routes en agglomération (vitesse limitée à 50 km/h ou moins) sont très claires, ce qui confirme que les accidents en agglomérations sont moins graves quel que soit l'age. Enfin, à partir de 90km/h, on peut observer que les personnes âgées à partir de 65 ans ont des accidents plus graves.
 
 Dans la **shiny app**, nous avons décidé de présenter cette carte de chaleur de manière interactive et nous avons rendu possible le fait de filtrer les accidents par hommes ou femmes ou voiture et deux roues. Ces options sont très pertinentes puisqu'elles permettent de mettre en évidence que les jeunes conducteurs hommes font des accidents en moyenne plus graves que les jeunes conductrices filles. Le graphique est cliquable et on peut précisément voir le taux d'accidents graves. 
 

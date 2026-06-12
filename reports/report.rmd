@@ -548,9 +548,14 @@ On peut observer sur la carte que la majorité des points se situent bien dans l
 
 ## II. L'environnement de conduite : Infrastructures et Météo 
 
-### Les accidents en agglomération sont-ils différents de ceux hors agglomération ? (en terme de gravité et volume)
+Nous étudions ici dans quelle mesure le cadre de conduite influence la sévérité des chocs. Pour ce faire, l'analyse progresse de l'environnement global (agglomération, type de route) vers les facteurs contextuels du moment, tels que la météo et les conditions d'éclairage. 
 
-Pour répondre à cette question nous avons décidé de faire un barplot (`geom_bar`) une barre pour les accidents en agglomération et une autre pour ceux hors agglomération. De plus, avec la fonction `positon = stack` on peut observer la gravité de l'accident sur les passagers/conducteurs. 
+
+### Les accidents en agglomération sont-ils différents de ceux hors agglomération ? (en termes de gravité et de volume)
+
+#### Objectif de l'analyse
+
+Nous comparons d'abord la gravité des accidents en agglomération et hors agglomération. Un diagramme en barres empilées à 100 % permet de s'affranchir des écarts de volume, tandis qu'une palette de couleurs chaudes et sombres (du gris clair au rouge) souligne visuellement la sévérité des chocs. Notre hypothèse est que les accidents hors agglomération sont proportionnellement plus graves.
 
 
 ```{r}
@@ -586,9 +591,9 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
   
 
 ```
+#### Analyse des résultats
 
-
-De ce premier graphique, on peut observer une nette différence quant à la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents ont tendance à être plus graves hors agglomération. Pour observer ce phénomène de plus près, voici un second graphique similaire au premier, mais en étudiant seulement les accidents graves (blessés hospitalisés et tués). Dans ces deux graphiques, nous avons fait le choix d'encoder la gravité des accidents dans un dégradé de rouge, ce qui parrait tout à fait naturel.
+De ce premier graphique, on peut observer une nette différence quant à la quantité d'accidents en ville. Presque **le double** d'accidents ont lieu en ville comparé aux accidents hors agglomération. Néanmoins, on voit aussi que les accidents ont tendance à être plus graves hors agglomération. Pour observer ce phénomène de plus près, voici un second graphique similaire au premier, mais en étudiant seulement les accidents graves (blessés hospitalisés et tués). Dans ces deux graphiques, nous avons fait le choix d'encoder la gravité des accidents dans un dégradé de rouge, ce qui paraît tout à fait naturel.
 
 ```{r}
 # Deuxième df en prennant cette fois-ci uniquement les bléssés et tués
@@ -623,16 +628,16 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
   theme_minimal()
   
 ```
+#### Analyse des résultats
 
-
-Dans ce second graphique, le résultat est clair : les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de blessés hospitalisés est aussi supérieur (environ 4000 blessés hospitalisés en plus soit 8,21%). Il est important de noter que ces deux graphiques ne donnent en aucun cas d'informations concernant la cause de l'accident. Il est impossible de savoir si le simple fait de rouler hors agglomérations est plus dangereux. Peut-être s'agit-il de facteurs tiers comme le type de routes ou le nombre de voies.
+Dans ce second graphique, le résultat est clair : les accidents hors agglomération sont **plus graves**. Les accidents mortels surviennent presque **deux fois plus** hors agglomération. Le nombre de blessés hospitalisés est aussi supérieur (environ 4000 blessés hospitalisés en plus soit 8,21%). Il est important de noter que ces deux graphiques ne donnent en aucun cas d'informations concernant la cause de l'accident. Il est impossible de savoir si le simple fait de rouler hors agglomération est plus dangereux. Peut-être s'agit-il de facteurs tiers comme le type de routes ou le nombre de voies.
 
 
 ### Le type de route influence-t-il la gravité des accidents ?
 
 #### Objectif de l'analyse :
 
-L'objectif est d'identifier les infrastructures routières où les accidents présentent la plus forte sévérité. En normalisant les données par type de route (proportion), nous cherchons à déterminer si le réseau routier influence intrinsèquement la gravité des chocs, indépendamment du volume de trafic global. Nous nous attendons à visualiser une disparité dans la répartition des niveaux de gravité, notamment pour repérer les routes affichant les taux de "Tués" ou "Blessés hospitalisés" les plus élevés.
+Afin d'identifier les causes précises de la forte prévalence de blessés graves hors agglomération, nous approfondissons l'analyse en étudiant le type de route. Ce prisme permet d'évaluer l'impact des limites de vitesse et du niveau de sécurisation propres à chaque infrastructure. Le graphique à 100 %, associé à une palette évolutive (du gris au rouge), isole ainsi la part de chocs sévères, attendue comme plus élevée sur le réseau secondaire.
 
 
 ```{r data_loading_marega}
@@ -663,13 +668,13 @@ df_prop <- df_prop %>%
   mutate(catr_label = reorder(catr_label, dangerosite))
 ```
 
-```{r}
+```{r, fig.width=8, fig.height=4.8, out.width="100%"}
 ggplot(df_prop, aes(x = pct, y = catr_label, fill = grav_label)) +
   # Barres cumulées à 100%
   geom_col(position = "stack", width = 0.7) +
   
   # Formatage propre de l'axe X en pourcentages stricts
-  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0)) +
+  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0.04)) +
   
   # Palette manuelle sémantique : du neutre (Gris) à l'alerte maximale (Rouge)
   scale_fill_manual(
@@ -706,19 +711,14 @@ ggplot(df_prop, aes(x = pct, y = catr_label, fill = grav_label)) +
 ```
 
 #### Analyse des résultats :
-Avec ce nouveau graphique en barres empilées à 100%, c'est beaucoup plus facile de comparer la gravité des accidents selon le type de route. En plus, comme les routes sont triées automatiquement de la plus dangereuse à la moins dangereuse (en cumulant les pourcentages de "Tué" et "Blessé hospitalisé"), la lecture est super directe.
-
-Les routes les plus dangereuses (en haut du graphique) : On remarque tout de suite que le "Hors réseau public" et les "Routes départementales" arrivent en tête. Leurs barres ont les segments rouges (Tué) et oranges (Blessé hospitalisé) les plus larges. Ça montre que quand un accident a lieu sur le réseau secondaire, il est souvent plus grave. C'est sûrement lié aux vitesses plus élevées, au fait qu'il n'y a pas toujours de séparation entre les voies (ce qui augmente le risque de choc frontal) ou à des routes moins bien aménagées.
-
-Les routes les moins dangereuses (en bas du graphique) : À l'inverse, les "Voies communales" et les "Autoroutes" se trouvent tout en bas avec les profils les plus rassurants, surtout remplis de jaune (Blessé léger) et de gris (Indemne).
-
-Pour les voies communales, c'est logique : la vitesse est limitée en ville (30 ou 50 km/h), donc les chocs sont moins violents.
-
-Pour les autoroutes, c'est le résultat le plus intéressant de notre analyse. Même si on y roule très vite, le fait qu'il n'y ait pas d'intersections et qu'il y ait des glissières de sécurité fait que les accidents y sont proportionnellement beaucoup moins graves qu'ailleurs.
+Les routes secondaires, et en particulier les routes départementales ainsi que les catégories plus marginales comme le hors réseau public, présentent une part plus élevée d'accidents graves. À l'inverse, les voies communales et les autoroutes affichent des structures relativement moins sévères. Le type de route semble donc prolonger le premier constat observé hors agglomération. Il reste toutefois à préciser si cette différence tient aussi à la configuration physique de la chaussée, notamment au nombre de voies.
 
 ### Le nombre de voies influence-t-il la fréquence ou la gravité des accidents ?
 
-#### 1 Fréquence des accidents par nombre de voies
+#### Objectif de l'analyse
+
+Le type de route reste une catégorie assez large ; nous examinons donc ici une caractéristique plus concrète de l'infrastructure : le nombre de voies. Un diagramme horizontal du taux d'accidents graves permet de lire directement la relation entre configuration de la route et sévérité. Les effectifs sont rappelés pour éviter de surinterpréter les modalités rares. Nous nous attendons à observer une gravité plus forte sur les routes peu séparées, notamment à deux voies.
+
 
 ```{r nbv_frequence}
 labels_grav <- c(
@@ -755,8 +755,6 @@ ggplot(df_nbv_freq, aes(x = nbv, y = n)) +
   theme_minimal(base_size = 12)
 ```
 
-#### 2 Gravité des accidents par nombre de voies
-
 ```{r nbv_gravite}
 df_nbv_grav <- df_nbv %>%
   count(nbv, grav_label) %>%
@@ -784,32 +782,15 @@ ggplot(df_nbv_grav, aes(x = nbv, y = pct, fill = grav_label)) +
   ) +
   theme_minimal(base_size = 12)
 ```
+#### Analyse des résultats
 
-#### Conclusion
-
-La grande majorité des accidents se produisent sur des routes à **2 voies** (171 153 accidents),
-ce qui reflète la prépondérance de ce type de route dans le réseau routier français.
-
-Contrairement à ce qu'on pourrait supposer, les routes à **2 voies sont les plus dangereuses**
-en termes de gravité, avec la part de tués et d'hospitalisés la plus élevée. Cela s'explique
-par la présence de trafic dans les deux sens sur une même chaussée, favorisant les **collisions frontales**.
-
-À l'inverse, les routes à **6 voies et plus** présentent une gravité nettement plus faible,
-probablement grâce à la séparation physique des sens de circulation et à des infrastructures
-mieux adaptées à la sécurité (autoroutes, voies rapides).
-Le nombre de voies influence donc bien la gravité des accidents : plus la route est large et ses sens séparés, moins les accidents sont mortels.
+Les résultats confirment le lien entre configuration de la route et gravité. Les routes à deux voies sont les plus critiques (fort volume et taux de gravité élevé), ce qui explique la dangerosité du réseau secondaire hors agglomération par l'absence de séparation physique (risque de choc frontal). À l'inverse, les voies plus larges (6 voies et +) s'avèrent moins sévères. Pour compléter cette approche, il convient maintenant d'étudier l'impact de l'état de la chaussée au moment de l'accident.
 
 ### L'état de la chaussée influence-t-il les accidents ?
 
-### Objecrif de l'analse
-Pour répondre à cette question, nous analysons l’état de la chaussée au moment de l’accident. L’objectif est de voir si certaines conditions de route sont plus fréquentes dans les accidents et si elles sont associées à une gravité plus importante.
+#### Objectif de l'analyse
 
-Nous proposons deux graphiques complémentaires :
-
-- un diagramme en barres en pourcentage, pour observer la part de chaque état de chaussée dans le nombre total d’accidents ;
-- un diagramme en barres empilées à 100 %, pour comparer la proportion d’accidents graves et non graves selon l’état de la chaussée.
-
-Cette double visualisation permet de distinguer la fréquence des accidents et leur gravité selon les conditions de route.
+Après les caractéristiques fixes de l'infrastructure, nous passons aux conditions de circulation temporaires. L'objectif est de distinguer la fréquence d'une situation de sa sévérité potentielle selon l'état de la chaussée. Pour ce faire, nous utilisons d'abord un diagramme en barres classiques pour observer la répartition des volumes, puis un graphique à 100 % dédié au taux d'accidents graves par modalité. Nous nous attendons à ce que les conditions les plus dégradées soient rares en volume, mais associées à une structure de gravité beaucoup plus lourde.
 
 ```{r}
 df_accidents_chaussee <- df %>%
@@ -921,11 +902,6 @@ ggplot(df_accidents_chaussee_total, aes(x = Etat_chaussee, y = pourcentage)) +
   )
 ```
 
-Ce graphique montre la part de chaque état de la chaussée dans le nombre total d'accidents. On observe que les accidents survenant dans des conditions particulièrement dégradées (chaussée enneigée, verglacée, inondée ou boueuse) restent extrêmement rares, représentant chacun moins de 1% du total.
-
-L'état le plus fréquent est mis en évidence par le pic absolu du graphique : il s'agit de la chaussée normale (80.4%), suivie de loin par la chaussée mouillée (18.7%). Cela correspond logiquement aux conditions les plus courantes lors des déplacements quotidiens, rappelant ainsi que la majorité des accidents se produit par temps sec, là où la vigilance des conducteurs peut parfois se relâcher.
-
-
 ```{r}
 ggplot(df_accidents_chaussee, aes(x = Etat_chaussee, fill = Accident_grave)) +
   geom_bar(
@@ -957,19 +933,16 @@ ggplot(df_accidents_chaussee, aes(x = Etat_chaussee, fill = Accident_grave)) +
     plot.title = element_text(face = "bold", size = 14)
   )
 ```
-Ce graphique montre la proportion d'accidents graves selon l'état de la chaussée. On observe que sur une chaussée mouillée, normale ou enneigée, la grande majorité des sinistres reste non grave, maintenant un taux de gravité relativement stable et bas (autour de 15% à 25%).
+#### Analyse des résultats
 
-La situation la plus dangereuse est mise en évidence par le pic absolu de gravité du graphique : il s'agit de la chaussée avec de la boue, où la proportion d'accidents graves bondit pour atteindre près de 45%. Cela montre que si ces conditions extrêmes sont statistiquement très rares en nombre absolu, elles augmentent de manière drastique la dangerosité des sinistres une fois qu'ils surviennent, en raison d'une perte de contrôle totale du véhicule.
+Les conditions les plus extrêmes apparaissent peu souvent en volume, mais elles affichent des taux de sévérité bien plus élevés. Ce constat confirme la logique initiée avec l'infrastructure : les facteurs les plus fréquents ne sont pas les plus mortels. Ainsi, alors que les chaussées normales concentrent l'essentiel des sinistres, les états dégradés aggravent fortement les chocs, une dynamique qu'il convient maintenant de vérifier à travers l'impact direct de la météo.
 
 
 ### Quel est l’impact de la météo (pluie, neige, brouillard) sur les accidents ?
 
-Pour répondre à cette question, nous proposons d’utiliser trois graphiques complémentaires :
+#### Objectif de l'analyse
 
-- un diagramme en barres du nombre d’accidents par météo, pour analyser la fréquence ;
-- un diagramme en barres du taux d’accidents graves, pour évaluer la gravité ;
-- un diagramme en barres empilées à 100 %, pour observer la répartition de la gravité des usagers selon la météo.
-
+Dans la continuité de l'analyse de la chaussée, nous isolons la météo pour distinguer sa fréquence de sa sévérité réelle. Nous croisons pour cela trois visualisations : le volume brut par condition, le taux d'accidents graves, et la structure fine de gravité à 100 %. Comme pour l'état de la route, nous nous attendons à un effet de ciseaux : des conditions normales qui concentrent l'essentiel des sinistres, face à des événements extrêmes (brouillard, tempête) beaucoup plus rares mais structurellement plus meurtriers.
 
 
 ```{r}
@@ -1053,7 +1026,7 @@ tableau_resume <- meteo_resume %>%
     `Taux d'accidents mortels` = percent(taux_mortalite)
   ) %>%
   select(
-    `Condition meteorologique` = meteo,
+    `Condition météorologique` = meteo,
     `Nombre d'accidents`,
     `Part des accidents`,
     `Taux d'accidents graves`,
@@ -1068,19 +1041,20 @@ ggplot(meteo_resume, aes(x = reorder(meteo, -n_accidents), y = n_accidents, fill
   scale_y_continuous(labels = number) +
   scale_fill_manual(values = meteo_palette, drop = FALSE) +
   labs(
-    title = "Nombre d'accidents selon la meteo",
+    title = "Nombre d'accidents selon la météo",
     subtitle = "France, 2020-2024",
-    x = "Condition meteorologique",
+    x = "Condition météorologique",
     y = "Nombre d'accidents"
   ) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 
 ```
+#### Analyse des résultats
 
 Ce graphique montre que la majorité des accidents se produit sous une météo normale. Cela ne signifie pas que ces conditions sont les plus dangereuses, mais plutôt qu’elles sont les plus fréquentes au moment des déplacements. À l’inverse, les situations de pluie, de brouillard ou de neige apparaissent moins souvent en nombre absolu, mais elles peuvent être associées à des accidents plus graves. Il faut donc distinguer ici la fréquence des accidents et leur gravité.
 
 
-```{r graph-gravite}
+```{r graph-gravite, fig.width=8, fig.height=4.8, out.width="100%"}
 ggplot(meteo_resume, aes(x = reorder(meteo, taux_gravite), y = taux_gravite, fill = meteo)) +
   geom_col(width = 0.7, show.legend = FALSE) +
     geom_text(
@@ -1090,14 +1064,15 @@ ggplot(meteo_resume, aes(x = reorder(meteo, taux_gravite), y = taux_gravite, fil
   ) +
   scale_y_continuous(labels = percent, expand = expansion(mult = c(0, 0.2))) +
   scale_fill_manual(values = meteo_palette, drop = FALSE) +
-  coord_flip() +
+  coord_flip(clip="off") +
   labs(
-    title = "Part des accidents graves selon la meteo",
-    subtitle = "Un accident est dit grave s'il comprend au moins un usager tue ou hospitalise",
-    x = "Condition meteorologique",
+    title = "Part des accidents graves selon la météo",
+    subtitle = "Un accident est dit grave s'il comprend au moins un usager tué ou hospitalisé",
+    x = "Condition météorologique",
     y = "Taux d'accidents graves"
   ) 
 ```
+#### Analyse des résultats
 
 Ce graphique montre que la part des accidents graves varie sensiblement selon les conditions météorologiques. Les taux les plus élevés apparaissent en cas de vent fort / tempête (56,3 %), de brouillard / fumée (54,8 %) et de temps éblouissant (53,8 %), ce qui suggère qu’une visibilité dégradée ou des conditions atmosphériques plus difficiles augmentent surtout la sévérité des accidents lorsqu’ils se produisent. À l’inverse, la pluie légère présente le taux le plus faible (29,3 %), tandis que la météo normale se situe à un niveau intermédiaire (36,0 %). Il faut toutefois interpréter avec prudence les catégories les moins fréquentes, car leurs effectifs sont plus réduits.
 
@@ -1113,21 +1088,23 @@ ggplot(profil_usagers, aes(x = meteo, y = part, fill = gravite_usager)) +
     "Tue" = "#B279A2"
   )) +
   labs(
-    title = "Repartition de la gravite des usagers selon la meteo",
-    x = "Condition meteorologique",
+    title = "Répartition de la gravité des usagers selon la météo",
+    x = "Condition météorologique",
     y = "Part des usagers",
-    fill = "Gravite"
+    fill = "Gravité"
   ) +
   coord_flip() 
 ```
+#### Analyse des résultats 
 
-Ce graphique complete l'analyse precedente en s'interessant non plus aux accidents, mais a la gravite des usagers impliques. On observe que sous vent fort / tempete, brouillard / fumee et temps eblouissant, la part d'usagers tues ou hospitalises est plus elevee, ce qui confirme une gravite plus importante dans ces conditions. À l'inverse, sous pluie legere, la structure est moins severe, avec une plus grande part d'usagers indemnes ou legerement blesses. Il faut toutefois rester prudent pour les categories les moins frequentes, comme « Autre » ou le vent fort / la tempete, car leurs effectifs sont plus faibles.
+Ce graphique complète l'analyse précédente en s'intéressant non plus aux accidents, mais à la gravité des usagers impliqués. On observe que sous vent fort / tempête, brouillard / fumée et temps éblouissant, la part d'usagers tués ou hospitalisés est plus élevée, ce qui confirme une gravité plus importante dans ces conditions. À l'inverse, sous pluie légère, la structure est moins sévère, avec une plus grande part d'usagers indemnes ou légèrement blessés. Il faut toutefois rester prudent pour les catégories les moins fréquentes, comme « Autre » ou le vent fort / la tempête, car leurs effectifs sont plus faibles.
 
 
-### Question : Les accidents sont-ils plus graves la nuit que le jour ?
+### Les accidents sont-ils plus graves la nuit que le jour ?
 
 #### Objectif de l'analyse :
-L'objectif est de comparer la répartition des niveaux de gravité des accidents selon les conditions d'éclairage. La variable `lum` distingue la pleine journée, l'aube/crépuscule, et plusieurs situations nocturnes (avec ou sans éclairage). Nous cherchons à déterminer si l'absence de lumière naturelle est associée à des accidents proportionnellement plus mortels.
+
+Pour parachever notre étude de l'environnement et approfondir notre compréhension des risques, nous analysons l'impact du contexte lumineux. Ce graphique en barres empilées à 100 % réutilise notre charte graphique sémantique : les teintes claires correspondent aux conséquences légères, tandis que la progression vers l'orange et le rouge matérialise visuellement la hausse de la létalité. L'objectif est de vérifier si le manque de visibilité nocturne aggrave la violence des chocs indépendamment des volumes, nous permettant ainsi de classer les situations par ordre croissant de dangerosité pour dresser le bilan global de cette partie.
 
 ```{r lum_data_prep}
 df_lum <- df %>%
@@ -1153,10 +1130,10 @@ df_lum <- df %>%
   mutate(lum_label = reorder(lum_label, dangerosite))
 ```
 
-```{r lum_plot}
+```{r lum_plot, fig.width=9, fig.height=5, out.width="100%"}
 ggplot(df_lum, aes(x = pct, y = lum_label, fill = grav_label)) +
   geom_col(position = "stack", width = 0.7) +
-  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0)) +
+  scale_x_continuous(labels = scales::percent_format(), expand = c(0, 0.04)) +
   scale_fill_manual(
     values = c(
       "Indemne"               = "#cbd5e1",
@@ -1173,30 +1150,22 @@ ggplot(df_lum, aes(x = pct, y = lum_label, fill = grav_label)) +
     y        = "Condition d'éclairage",
     fill     = "Niveau de gravité"
   ) +
-  theme_minimal(base_size = 11) +
-  theme(
-    plot.title    = element_text(face = "bold", size = 13, color = "#0f172a"),
-    plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)),
-    legend.position = "top",
-    legend.title  = element_text(face = "bold", size = 9.5),
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor   = element_blank(),
-    axis.text = element_text(color = "#334155", size = 9.5)
-  )
+  theme_minimal(base_size = 11) + 
+  theme(plot.title = element_text(face = "bold", size = 13, color = "#0f172a"), 
+        plot.subtitle = element_text(size = 10, color = "#475569", margin = margin(b = 15)), 
+        legend.position = "top", legend.title = element_text(face = "bold", size = 9.5), 
+        panel.grid.major.y = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.text = element_text(color = "#334155", size = 9.5) )
 ```
 
 #### Analyse des résultats :
 
-Ce graphique en barres empilées à 100% permet de comparer directement la sévérité des accidents selon les conditions d'éclairage, classées automatiquement de la plus dangereuse (en haut) à la moins dangereuse (en bas).
+Les résultats confirment que la nuit sans éclairage est la situation la plus critique, affichant la part de tués et de blessés hospitalisés la plus élevée. Globalement, les contextes nocturnes s'avèrent bien plus sévères que le plein jour, validant l'impact direct de la visibilité sur la violence des chocs. Ce constat final complète parfaitement notre analyse : au-delà de la géométrie de l'infrastructure et de l'adhérence de la chaussée, la capacité à voir et à anticiper reste le facteur clé pour atténuer la gravité des accidents.
 
-La **nuit sans éclairage** ressort comme la condition la plus meurtrière : la part de tués et de blessés hospitalisés y est nettement plus élevée que dans les autres situations. L'absence totale d'éclairage réduit drastiquement la visibilité, les temps de réaction et la capacité à anticiper les obstacles.
+### Conclusion
 
-La **nuit avec éclairage non allumé** présente également une gravité élevée, probablement due à une fausse impression de sécurité chez les conducteurs qui supposent un éclairage fonctionnel.
-
-À l'inverse, les accidents en **plein jour** affichent le profil le plus favorable, avec la proportion d'indemnes et de blessés légers la plus importante. Les **accidents de crépuscule/aube** se situent dans une position intermédiaire, ce qui confirme que la visibilité dégradée, même partielle, suffit à augmenter la dangerosité.
-
-La nuit, et plus particulièrement sans éclairage public, est donc bien associée à des accidents significativement plus graves. L'éclairage routier joue un rôle protecteur mesurable sur la sévérité des blessures.
-
+En croisant les données de nos différents graphiques, nous avons mis en lumière le contraste majeur entre le volume des sinistres et leur gravité réelle. Notre analyse des infrastructures montre que si la densité urbaine génère une forte accidentalité, les visuels du réseau secondaire révèlent que l'absence de séparation physique hors agglomération multiplie les chocs mortels. Enfin, l'examen des facteurs environnementaux nous a permis de comprendre que si le trafic roule massivement par météo clémente sur chaussée sèche, ce sont les perturbations météo (brouillard, pluie), les pertes d'adhérence et la nuit qui font exploser la létalité en altérant la visibilité et le contrôle du véhicule.
 
 ## III. Les acteurs de l'accidents : Usagers, Vehicules et comportements
 
@@ -1759,7 +1728,3 @@ ggplot(df_heat, aes(x = age_bin, y = vma_grp, fill = taux_grave)) +
 On remarque aisément une ligne plus rouge lorsque la vitesse maximale autorisée est de 80 km/h. Cela peut s'expliquer par le fait que ces routes sont souvent des routes départementales qui sont généralement dépourvues de barrières de sécurité et sur lesquelles il est courant de dépasser la vitesse limite. Elles sont parfois sinueuses et mal entretenues. À l'inverse, les lignes des routes en agglomération (vitesse limitée à 50 km/h ou moins) sont très claires, ce qui confirme que les accidents en agglomérations sont moins graves quel que soit l'age. Enfin, à partir de 90km/h, on peut observer que les personnes âgées à partir de 65 ans ont des accidents plus graves.
 
 Dans la **shiny app**, nous avons décidé de présenter cette carte de chaleur de manière interactive et nous avons rendu possible le fait de filtrer les accidents par hommes ou femmes ou voiture et deux roues. Ces options sont très pertinentes puisqu'elles permettent de mettre en évidence que les jeunes conducteurs hommes font des accidents en moyenne plus graves que les jeunes conductrices filles. Le graphique est cliquable et on peut précisément voir le taux d'accidents graves. 
-
-
-
-

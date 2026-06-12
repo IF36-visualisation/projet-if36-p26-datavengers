@@ -215,7 +215,12 @@ gravite_palette <- c(
 
 ## I. Vue d'ensemble : La dynamique spatio-temporelle
 
+Dans cette première partie, nous allons étudier à quels moments et à quels endroits les accidents se produisent le plus en France entre 2020 et 2024.
+
 ### Comment évolue le nombre total d'accidents en 2020 et 2024 ?
+
+#### Objectif de l'analyse :
+Pour commencer notre étude, le but est d'observer la tendance générale d'une année à l'autre. On choisit un graphique en courbe bleu foncé avec des points rouges pour bien repérer les changements de volumes de 2020 à 2024. On s'attend à voir l'impact du Covid avant une reprise du trafic.
 
 ```{r}
 df_evolution <- df %>%
@@ -237,14 +242,14 @@ ggplot(df_evolution, aes(x = as.numeric(an), y = nb_accidents)) +
 
 #### Analyse des résultats :
 
-L’analyse du graphique met en évidence une dynamique temporelle en trois phases distinctes. On observe tout d'abord un niveau minimal en 2020 (autour de 105 000 accidents), ce qui valide l'impact direct des confinements de la crise sanitaire sur la réduction de l'exposition au risque routier. S'ensuit une phase de reprise partielle en 2021 et 2022 où le volume fluctue entre 120 000 et 126 000 cas. La rupture majeure de la série temporelle intervient entre 2022 et 2023, marquée par une augmentation brutale pour atteindre un plateau historique à près de 160 000 accidents. Ce saut quantitatif important ne traduit pas nécessairement une dégradation soudaine du comportement des usagers, mais plutôt un effet de bord méthodologique : il s'agit vraisemblablement de l'intégration de nouvelles bases de données ou d'un changement de périmètre dans l'enregistrement des accidents par les forces de l'ordre (comme le passage au reporting complet des pré-déclarations). Enfin, la stabilisation stricte observée entre 2023 et 2024 confirme l'établissement d'un nouveau régime permanent pour notre système d'indicateurs.
+On observe trois périodes. En 2020, le nombre d'accidents est très bas, probablement à cause du confinement. En 2021 et 2022, les chiffres remontent un peu avec la reprise du trafic. Il y a ensuite une énorme hausse en 2023, qui se stabilisent enfin en 2024.
 
 ### Il y a-t-il des tendances saisonnières dans les accidents ?
 
 #### Objectif de l'analyse :
-L'objectif est d'observer la répartition du nombre d'accidents tout au long de l'année pour identifier d'éventuelles tendances saisonnières (plus d'accidents en hiver ou en été ?). Nous ajoutons également le niveau de gravité pour voir si la saisonnalité impacte non seulement la fréquence, mais aussi la sévérité des accidents (ex: conditions météorologiques hivernales). Nous encoderons dans un dégradé de rouge les gravités des accidents.
+Après avoir vu l'évolution sur plusieurs années, changeons d'échelle pour regarder ce qu'il se passe au cours d'une seule année, mois par mois. On utilise un graphique en barres empilées avec un dégradé allant du gris au rouge foncé pour voir si la météo ou les saisons changent aussi la gravité des blessures. On s'attend à voir plus d'accidents pendant les vacances d'été.
 
-```{r mois_gravite}
+```{r}
 # Préparation des données par mois et gravité
 df_mois <- df %>%
   filter(!is.na(mois), mois >= 1, mois <= 12,
@@ -294,14 +299,8 @@ De manière générale, on voit qu'il y a plus d'accidents durant les mois de ju
 
 #### À quelles heures de la journée les accidents sont-ils les plus fréquents ?
 
-Pour répondre à cette question, nous analysons la répartition des accidents selon l’heure à laquelle ils se produisent.
-
-Nous proposons deux graphiques complémentaires :
-- diagramme en barres par heure, pour observer précisément les heures où les accidents sont les plus fréquents ;
-- diagramme en barres par période de la journée, pour comparer plus globalement la nuit, le matin, l’après-midi et le soir.
-
-Cette double visualisation permet d’identifier les moments de la journée où le nombre d’accidents est le plus élevé.
-
+#### Objectif de l'analyse :
+Maintenant que l'on sait quels mois sont les plus touchés, zoomons encore plus précisément sur le quotidien pour trouver les heures les plus risquées. On fait des graphiques en barres bleues, avec la barre la plus haute en rouge pour repérer le pire moment. On s'attend à avoir des pics d'accidents pendant les heures de pointe, quand tout le monde est sur la route.
 
 ```{r}
 df_accidents_heure <- df %>%
@@ -362,7 +361,6 @@ periode_max <- df_accidents_periode %>%
 
 ```
 
-#### Visualisation des accidents selon l’heure de la journée
 ```{r}
 ggplot(df_accidents_heure, aes(x=heure, y=nb_accidents)) +
   geom_col(fill= "#2E86AB") +
@@ -403,7 +401,6 @@ Ce graphique montre l'évolution du nombre d'accidents au fil de la journée. On
 L'heure la plus fréquente est mise en évidence en rouge : il s'agit de 17h, moment qui enregistre le pic absolu d'accidents. Cela correspond aux heures de pointe, lorsque les flux de circulation sont les plus denses en raison des trajets retour du travail ou de l'école. À l'inverse, le nombre d'accidents atteint son minimum au milieu de la nuit (entre 3h et 4h).
 
 
-#### Visualisation des accidents selon les périodes de la journée
 ```{r}
 ggplot(df_accidents_periode, aes(x = periode_journee, y = nb_accidents)) +
   geom_col(fill = "#2E86AB") +
@@ -443,26 +440,28 @@ ggplot(df_accidents_periode, aes(x = periode_journee, y = nb_accidents)) +
   coord_cartesian(xlim = c(1, 6)) +
   theme_classic()
 ```
+#### Analyse des résultats
 Ce graphique montre le nombre d'accidents regroupés par grandes périodes de la journée. On observe des niveaux de sinistralité quasi identiques et très élevés durant le matin et le soir (autour de 72 000 accidents), encadrant une activité routière globalement dense sur l'ensemble de la journée.
 
 La période la plus fréquente est mise en évidence en rouge : il s'agit de l'après-midi (entre 12h et 18h), moment qui enregistre le pic absolu avec 101 381 accidents. Cela correspond aux heures où les flux de circulation cumulés (déplacements professionnels, livraisons, trajets scolaires et départs en fin de journée) sont les plus intenses. À l'inverse, le nombre d'accidents atteint son minimum au milieu de la nuit (entre 00h et 06h) avec 22 593 accidents, en raison d'une baisse radicale du trafic.
 
 #### Où se produisent le plus d’accidents (région, département, ville) ?
 
-Pour répondre à cette question, nous avons décidé de réaliser un choroplète avec la librairie tmap qui est plus adapté que ggplot2 et permet une visualisation interractive. De plus avec ('tm_dots'), nous pourrons voir la distribution des points représentant les accidents dans toute la France.
+#### Objectif de l'analyse :
+Après avoir bien compris quand les accidents arrivent (les années, les mois et les heures), il reste une question essentielle : où se produisent-ils en France ? On crée une carte colorée du jaune au rouge avec des petits points pour situer le danger. On s'attend à ce que les zones très peuplées et les grandes villes ressortent le plus.
 
-```{r setup_tmap, message=FALSE}
+```{r}
 library(sf)
 library(dplyr)
 library(tmap)
 library(here)
 
 # Pour l'interactif et les erreurs de calcul
-tmap_mode("plot") #remplacer le view par plot si on veut retirer l'interaction
+tmap_mode("plot") #remplacer par view si on veut ajouter de l'interaction
 sf_use_s2(FALSE)
 ```
 
-```{r data_loading}
+```{r}
 # 1. Chargement des données
 dep_map <- st_read(here("Departements","Departements.shp"), quiet = TRUE)
 
@@ -477,7 +476,7 @@ df$dep <- ifelse(
   df$dep
 )
 
-# 3. Agrégation et Jointure (Création de dep_map2)
+# 3. Création de dep_map2
 acc_dep <- df %>%
   group_by(dep) %>%
   summarise(nb_accidents = n())
@@ -487,7 +486,7 @@ dep_map2 <- dep_map %>%
 
 ```
 
-```{r filtering}
+```{r}
 # Filtrage de la carte
 dep_map_metro <- dep_map2 %>% 
   filter(
@@ -515,7 +514,7 @@ df_sf_metro <- df %>%
   st_as_sf(coords = c("long", "lat"), crs = 4326)
 ```
 
-```{r final_map, fig.width=10, fig.height=8}
+```{r}
 tm_shape(dep_map_metro) +
   tm_polygons(
     "nb_accidents",
@@ -531,19 +530,22 @@ tm_shape(df_sf_metro) +
     alpha = 0.6,
     clustering = FALSE,
     interactive = FALSE,
-    shape = 21,         # Un point plein est plus stable au zoom
+    shape = 21,         
     legend.show = FALSE
   ) +
 tm_view(
   basemaps = "CartoDB.Positron",
   view.legend.position = c("right", "bottom"),
-  # On retire les limites de zoom strictes pour être libre
   set.view = c(2.21, 46.22, 6) 
 )
 ```
 #### Analyse des résultats :
 
 On peut observer sur la carte que la majorité des points se situent bien dans les grandes villes (Paris, Lyon, Marseille et Bordeaux) ce qui est normal vu qu'il y a plus de circulation. Parmi ces grandes villes, Paris sort du lot avec plus de 60 000 accidents entre 2020 et 2024.
+Cependant, la limite de cette carte est qu'elle montre seulement le nombre total d'accidents. On ne sait pas si la route est dangereuse à cause de l'environnement, ou s'il y a juste beaucoup plus de conducteurs à cet endroit, ce qui fait forcément grimper les chiffres.
+
+#### Conclusion de la première partie :
+Pour conclure, on remarque que les accidents ne se passent pas au hasard : ils se concentrent surtout pendant les heures de pointe, les mois de rentrée et dans les départements des grandes villes.
 
 
 ## II. L'environnement de conduite : Infrastructures et Météo 

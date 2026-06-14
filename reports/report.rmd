@@ -483,7 +483,6 @@ acc_dep <- df %>%
 
 dep_map2 <- dep_map %>%
   left_join(acc_dep, by = c("DDEP_C_COD" = "dep"))
-
 ```
 
 ```{r}
@@ -530,13 +529,18 @@ tm_shape(df_sf_metro) +
     alpha = 0.6,
     clustering = FALSE,
     interactive = FALSE,
-    shape = 21,         
+    shape = 21,        
     legend.show = FALSE
   ) +
 tm_view(
   basemaps = "CartoDB.Positron",
-  view.legend.position = c("right", "bottom"),
-  set.view = c(2.21, 46.22, 6) 
+  legend.outside = TRUE,            
+  legend.outside.position = "right",
+  legend.outside.size = 0.18,       
+  legend.title.size = 1.1,
+  legend.text.size = 0.9,
+  inner.margins = 0,                
+  frame = FALSE
 )
 ```
 #### Analyse des résultats :

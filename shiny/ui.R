@@ -37,6 +37,19 @@ dashboardPage(
     h4("Filtres ventes"),
     
     selectInput(
+      "region",
+      "Région des ventes :",
+      choices = c(
+        "Global" = "Global_Sales",
+        "Amérique du Nord" = "NA_Sales",
+        "Europe" = "EU_Sales",
+        "Japon" = "JP_Sales",
+        "Autres régions" = "Other_Sales"
+      ),
+      selected = "Global_Sales"
+    ),
+    
+    selectInput(
       "sales_genre",
       "Genre :",
       choices = NULL,
@@ -69,19 +82,6 @@ dashboardPage(
     ),
     
     hr(),
-    
-    selectInput(
-      "region",
-      "Région des ventes :",
-      choices = c(
-        "Global" = "Global_Sales",
-        "Amérique du Nord" = "NA_Sales",
-        "Europe" = "EU_Sales",
-        "Japon" = "JP_Sales",
-        "Autres régions" = "Other_Sales"
-      ),
-      selected = "Global_Sales"
-    ),
     
     sliderInput(
       "top_n",
@@ -154,29 +154,28 @@ dashboardPage(
         
         fluidRow(
           box(
-            title = "Jeux avec le plus de runs",
-            width = 6,
-            status = "warning",
-            solidHeader = TRUE,
-            plotOutput("runs_games_plot")
-          ),
-          
-          box(
             title = "Plateformes les plus populaires en speedrun",
             width = 6,
             status = "warning",
             solidHeader = TRUE,
             plotOutput("runs_platform_plot")
+          ),
+          box(
+            title = "Genres les plus représentés en speedrun",
+            width = 6,
+            status = "warning",
+            solidHeader = TRUE,
+            plotOutput("runs_genre_plot")
           )
         ),
         
         fluidRow(
           box(
-            title = "Genres les plus représentés en speedrun",
+            title = "Jeux avec le plus de runs",
             width = 12,
             status = "warning",
             solidHeader = TRUE,
-            plotOutput("runs_genre_plot")
+            plotOutput("runs_games_plot")
           )
         )
       )

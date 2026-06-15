@@ -1732,6 +1732,7 @@ On remarque aisément une ligne plus rouge lorsque la vitesse maximale autorisé
 
 Dans la **shiny app**, nous avons décidé de présenter cette carte de chaleur de manière interactive et nous avons rendu possible le fait de filtrer les accidents par hommes ou femmes ou voiture et deux roues. Ces options sont très pertinentes puisqu'elles permettent de mettre en évidence que les jeunes conducteurs hommes font des accidents en moyenne plus graves que les jeunes conductrices filles. Le graphique est cliquable et on peut précisément voir le taux d'accidents graves. 
 
+
 ## Conclusion
 
 Ce projet nous a permis d'explorer en profondeur les accidents corporels de la route en France entre 2020 et 2024, à travers un jeu de données riche de près de 690 000 lignes et 56 variables. L'analyse visuelle que nous avons menée met en lumière plusieurs enseignements clés.
@@ -1741,4 +1742,37 @@ Premièrement, les accidents ne sont pas distribués au hasard : ils se concentr
 Nous avons également rencontré plusieurs difficultés. La qualité des données n'est pas homogène : de nombreuses variables comportent des valeurs manquantes ou codées de manière ambiguë (-1, 0), ce qui a nécessité un travail de nettoyage conséquent avant toute visualisation. Par ailleurs, l'interprétation causale reste limitée : un fort volume d'accidents dans une zone densément peuplée ne signifie pas que cette zone est intrinsèquement dangereuse, et l'absence de données sur le trafic réel empêche tout calcul de taux d'exposition au risque. La variable sur le port de l'équipement de sécurité souffre également d'un biais de déclaration probable, rendant les comparaisons délicates.
 
 Pour étendre ce travail, plusieurs pistes seraient pertinentes. Croiser les données avec des volumes de trafic par tronçon permettrait de passer d'un nombre brut d'accidents à un véritable taux de risque. Intégrer des données socio-économiques par département pourrait révéler des inégalités territoriales face à l'accidentalité. Enfin, une modélisation prédictive (régression, forêts aléatoires) permettrait d'identifier les combinaisons de facteurs les plus prédictives de la gravité, ouvrant des perspectives concrètes pour les politiques de prévention routière.
+
+=======
+
+\newpage
+
+## Annexe
+
+Dans ce projet, nous avons réparti les tâches de manière efficace et organisée. Pour ce faire, chacun a choisi les questions qu'il souhaitait traiter. Comme nous avions 15 questions, nous en avons traité 4 chacun, à l'exception de Marega qui en a traité 3 car la réalisation de la carte choroplèthe représentait déjà une charge de travail importante. Voici un tableau résumant la répartition des questions :
+
+| N° Question | Question | Personne responsable |
+| :--- | :--- | :--- |
+| 1 | Comment évolue le nombre total d'accidents entre 2020 et 2024 ? | Marega |
+| 2 | Existe-t-il des tendances saisonnières (hiver/été) ? | Max |
+| 3 | Où se produisent le plus d'accidents ? | Marega |
+| 4 | Quelle est la répartition des victimes par âge et par sexe ? | Alex |
+| 5 | À quelle heure de la journée les accidents sont-ils les plus fréquents ? | Alex |
+| 6 | Quel est l'impact de la météo ? | Alex |
+| 7 | Existe-t-il un seuil (âge, vitesse, heure...) à partir duquel le risque explose ? | Max |
+| 8 | Les motos ont-elles un taux de gravité plus élevé ? | Paul-louis |
+| 9 | Les accidents sont-ils plus graves la nuit que le jour ? | Paul-Louis |
+| 10 | Les accidents en agglomération sont-ils différents de ceux hors agglomération ? | Max |
+| 11 | Le type de route influence-t-il la gravité des accidents ? | Marega |
+| 12 | L'état de la chaussée influence-t-il les accidents (gravité, fréquence) ? | Alex |
+| 13 | Le nombre influence-t-il la fréquence ou la gravité des accidents ? | Paul-Louis |
+| 14 | Les équipements de sécurité réduisent-ils la gravité ? | Max |
+| 15 | Certaines manœuvres ou collisions sont-elles plus dangereuses que d'autres ? | Paul-Louis |
+
+
+Concernant l'application Shiny, nous avons créé, lors d'un TD, la base des fichiers `server.R` et `ui.R` ainsi qu'une visualisation d'exemple afin que chacun puisse suivre la même démarche. Par la suite, chaque membre du groupe a ajouté une visualisation pertinente pour la rendre interactive.
+
+Max s'est chargé de reproduire la carte choroplèthe à l'aide de Power BI.
+
+Enfin, concernant l'utilisation de Git, nous avons rencontré quelques difficultés lors des fusions (merges) lorsque deux personnes travaillaient simultanément sur le rapport sans s'être concertées.
 

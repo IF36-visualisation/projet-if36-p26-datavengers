@@ -1743,7 +1743,14 @@ Nous avons également rencontré plusieurs difficultés. La qualité des donnée
 
 Pour étendre ce travail, plusieurs pistes seraient pertinentes. Croiser les données avec des volumes de trafic par tronçon permettrait de passer d'un nombre brut d'accidents à un véritable taux de risque. Intégrer des données socio-économiques par département pourrait révéler des inégalités territoriales face à l'accidentalité. Enfin, une modélisation prédictive (régression, forêts aléatoires) permettrait d'identifier les combinaisons de facteurs les plus prédictives de la gravité, ouvrant des perspectives concrètes pour les politiques de prévention routière.
 
-=======
+Max : 
+Dans cette matière, j'ai pris conscience de plusieurs éléments pour pouvoir juger la qualité d'un graphique et donc sa véracité. J'ai compris l'importance de la clarté pour que des personnes n'ayant pas mon référentiel comprennent l'information que je veux transmettre.
+
+Oleksandr : 
+En travaillant en équipe, j'ai appris à réaliser des analyses globales de données. Par la suite, j'aimerais consacrer plus de temps à la pratique sur Power BI afin de perfectionner la création de graphiques et la visualisation.
+
+
+
 
 \newpage
 

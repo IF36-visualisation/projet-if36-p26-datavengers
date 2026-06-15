@@ -1255,7 +1255,8 @@ ggplot(df_victimes_age_sexe, aes(x = classe_age, y = nb_victimes, fill = sexe_la
     y = "Nombre de victimes",
     fill = "Sexe"
   ) +
-  theme_classic()
+  theme_classic()+
+   coord_flip()
 ```
 Ce graphique montre la répartition des victimes par âge et par sexe. On observe une surreprésentation massive des jeunes, avec un pic critique chez les 15-24 ans, suivi d'une baisse progressive vers les tranches d'âge supérieures.
 

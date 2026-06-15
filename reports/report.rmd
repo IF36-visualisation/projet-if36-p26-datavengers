@@ -437,7 +437,7 @@ ggplot(df_accidents_periode, aes(x = periode_journee, y = nb_accidents)) +
     x = "Période de la journée",
     y = "Nombre d'accidents"
   ) +
-  coord_cartesian(xlim = c(1, 6)) +
+  coord_cartesian(xlim = c(1, 7.5), clip = "off") +
   theme_classic()
 ```
 #### Analyse des résultats

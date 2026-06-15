@@ -532,8 +532,11 @@ tm_shape(df_sf_metro) +
     shape = 21,        
     legend.show = FALSE
   ) +
-tm_view(
+tm_layout(
   basemaps = "CartoDB.Positron",
+  main.title = "Nombre d'accidents par département en France (2020-2024)",
+  main.title.position = "center",
+  main.title.size = 1.2,
   legend.outside = TRUE,            
   legend.outside.position = "right",
   legend.outside.size = 0.18,       
@@ -625,7 +628,6 @@ ggplot(df_plot, aes(x = Agglomeration, fill = Gravite)) +
                                "Tué" = "#000000")) +
   labs(
     title = "Accidents graves en agglomération vs hors agglomération",
-    subtitle = "Les accidents hors agglomération présentent une part plus importante de victimes graves",
     x = "",
     y = "Nombre d'usagers impliqués",
     fill = "Niveau de gravité",

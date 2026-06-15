@@ -1374,7 +1374,6 @@ df_collision <- df %>%
     grave = grav %in% c(2, 3)
   )
 
-glimpse(df_collision)
 ```
 
 ---

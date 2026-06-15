@@ -1749,6 +1749,9 @@ Dans cette matière, j'ai pris conscience de plusieurs éléments pour pouvoir j
 Oleksandr : 
 En travaillant en équipe, j'ai appris à réaliser des analyses globales de données. Par la suite, j'aimerais consacrer plus de temps à la pratique sur Power BI afin de perfectionner la création de graphiques et la visualisation.
 
+Marega :
+Ce projet m'a permis de maîtriser l'utilisation de GitHub pour le travail collaboratif et de comprendre l'importance cruciale de bien choisir ses graphiques pour rendre une analyse percutante. J'aurais cependant aimé approfondir l'outil Power BI pour concevoir un tableau de bord interactif, ce qui n'a pas été possible par manque de temps.
+
 
 
 

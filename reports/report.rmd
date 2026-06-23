@@ -1752,6 +1752,11 @@ En travaillant en équipe, j'ai appris à réaliser des analyses globales de don
 Marega :
 Ce projet m'a permis de maîtriser l'utilisation de GitHub pour le travail collaboratif et de comprendre l'importance cruciale de bien choisir ses graphiques pour rendre une analyse percutante. J'aurais cependant aimé approfondir l'outil Power BI pour concevoir un tableau de bord interactif, ce qui n'a pas été possible par manque de temps.
 
+Paul-Louis :
+Ce projet m'a permis de développer une compréhension plus concrète du cycle complet d'un projet data : de la collecte et du nettoyage des données jusqu'à leur mise en forme visuelle pour communiquer des résultats. J'ai appris à ne pas sous-estimer les étapes intermédiaires, la préparation des données est souvent ce qui conditionne la qualité de tout le reste.
+
+
+
 
 
 
